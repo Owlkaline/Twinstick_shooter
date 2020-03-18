@@ -70,7 +70,7 @@ fn main() {
   graphics.add_model("fridge".to_string(), 
                        "./resources/models/fridge.glb".to_string());
   graphics.add_model("floor".to_string(), 
-                       "./resources/models/floor.glb".to_string());
+                       "./resources/models/house_two.glb".to_string());
   
   graphics.load_shaders();
   graphics.create_model_instance_buffer("house".to_string());
@@ -145,8 +145,12 @@ fn main() {
     draw_calls.clear();
     
     game.reset_scroll_value();
-    for (reference, size) in &model_details {
-      game.add_model_size(reference.to_string(), *size);
+    for (reference, size, terrain_data) in &model_details {
+      let mut data = None;
+      if let Some(t_d) = terrain_data {
+        data = Some(t_d.clone());
+      }
+      game.add_model_size(reference.to_string(), *size, data);
     }
     
     let events = graphics.get_events();

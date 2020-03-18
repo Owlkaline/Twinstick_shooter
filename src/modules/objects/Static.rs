@@ -28,7 +28,7 @@ impl GenericObject for StaticObject {
     &mut self.data
   }
   
-  fn update(&mut self, width: f32, height: f32, keys: &MappedKeys, model_sizes: &Vec<(String, Vector3<f32>)>, delta_time: f32) {
+  fn update(&mut self, width: f32, height: f32, keys: &MappedKeys, model_sizes: &Vec<(String, Vector3<f32>)>, terrain_data: &Vec<(String, Vec<Vector3<f32>>)>, delta_time: f32) {
     
   }
 }

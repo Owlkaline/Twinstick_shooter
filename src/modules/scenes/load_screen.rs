@@ -38,7 +38,7 @@ impl Scene for LoadScreen {
   
   fn future_scene(&mut self, _window_size: Vector2<f32>) -> Box<Scene> {
     let dim = self.data().window_dim;
-    Box::new(PlayScreen::new(dim, self.data.model_sizes.clone()))
+    Box::new(PlayScreen::new(dim, self.data.model_sizes.clone(), self.data.terrain_data.clone()))
   }
   
   fn update(&mut self, delta_time: f32) {
@@ -65,7 +65,7 @@ impl Scene for LoadScreen {
       draw_calls.push(DrawCall::load_model("hexagon".to_string()));
       draw_calls.push(DrawCall::load_model("fridge".to_string()));
       draw_calls.push(DrawCall::load_model("person".to_string()));
-      draw_calls.push(DrawCall::load_model("floor".to_string()));
+      draw_calls.push(DrawCall::load_terrain_model("floor".to_string()));
       draw_calls.push(DrawCall::load_model("house_one".to_string()));
       draw_calls.push(DrawCall::load_model("house_two".to_string()));
       draw_calls.push(DrawCall::load_model("house_double".to_string()));

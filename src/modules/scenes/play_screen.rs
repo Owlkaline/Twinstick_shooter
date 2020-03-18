@@ -33,7 +33,7 @@ pub struct PlayScreen {
 }
 
 impl PlayScreen {
-  pub fn new(window_size: Vector2<f32>, model_sizes: Vec<(String, Vector3<f32>)>) -> PlayScreen {
+  pub fn new(window_size: Vector2<f32>, model_sizes: Vec<(String, Vector3<f32>)>, terrain_data: Vec<(String, Vec<Vector3<f32>>)>) -> PlayScreen {
     let mut rng = thread_rng();
     
     let mut camera = PerspectiveCamera::default_vk();
@@ -58,11 +58,11 @@ impl PlayScreen {
     character.set_scale(Vector3::new(char_scale, char_scale, char_scale));
     
     
-    let mut floor = StaticObject::new(Vector3::new(0.0, 0.0, 0.0), "floor".to_string()).scale(Vector3::new(100.0, 1.0, 100.0));
+    let mut floor = StaticObject::new(Vector3::new(0.0, 0.0, 0.0), "floor".to_string()).scale(Vector3::new(10.0, 10.0, 10.0));
     objects.push(Box::new(floor));
     
     PlayScreen {
-      data: SceneData::new(window_size, model_sizes),
+      data: SceneData::new(window_size, model_sizes, terrain_data),
       rng,
       camera,
       last_mouse_pos: Vector2::new(-1.0, -1.0),
@@ -84,7 +84,7 @@ impl Scene for PlayScreen {
   
   fn future_scene(&mut self, window_size: Vector2<f32>) -> Box<Scene> {
     let dim = self.data().window_dim;
-    Box::new(PlayScreen::new(dim, self.data.model_sizes.clone()))
+    Box::new(PlayScreen::new(dim, self.data.model_sizes.clone(), self.data.terrain_data.clone()))
   }
   
   fn update(&mut self, delta_time: f32) {
@@ -97,10 +97,11 @@ impl Scene for PlayScreen {
     {
       let keys = self.data().keys.clone();
       let model_sizes = self.data().model_sizes.clone();
+      let terrain_data = self.data().terrain_data.clone();
       for object in &mut self.objects {
-        object.update(width, height, &keys, &model_sizes, delta_time);
+        object.update(width, height, &keys, &model_sizes, &terrain_data, delta_time);
       }
-      self.character.update(width, height, &keys, &model_sizes, delta_time);
+      self.character.update(width, height, &keys, &model_sizes, &terrain_data, delta_time);
       
     }
     

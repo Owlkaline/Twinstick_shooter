@@ -35,6 +35,7 @@ pub struct SceneData {
   pub window_resized: bool,
   pub controller: Controller,
   pub model_sizes: Vec<(String, Vector3<f32>)>,
+  pub terrain_data: Vec<(String, Vec<Vector3<f32>>)>,
   models_to_load: Vec<(String, String)>,
   models_to_unload: Vec<String>,
   fps_last_frame: f64,
@@ -42,7 +43,7 @@ pub struct SceneData {
 }
 
 impl SceneData {
-  pub fn new(window_size: Vector2<f32>, model_sizes: Vec<(String, Vector3<f32>)>) -> SceneData {
+  pub fn new(window_size: Vector2<f32>, model_sizes: Vec<(String, Vector3<f32>)>, terrain_data: Vec<(String, Vec<Vector3<f32>>)>) -> SceneData {
     SceneData {
       should_close: false,
       next_scene: false,
@@ -61,6 +62,7 @@ impl SceneData {
       window_resized: false,
       controller: Controller::new(),
       model_sizes,
+      terrain_data,
       models_to_load: Vec::new(),
       models_to_unload: Vec::new(),
       fps_last_frame: 0.0,
@@ -87,6 +89,7 @@ impl SceneData {
       window_resized: false,
       controller: Controller::new(),
       model_sizes: Vec::new(),
+      terrain_data: Vec::new(),
       models_to_load: Vec::new(),
       models_to_unload: Vec::new(),
       fps_last_frame: 0.0,
@@ -170,9 +173,12 @@ pub trait Scene {
     self.mut_data().update_mouse_pos(mouse_position);
   }
   
-  fn add_model_size(&mut self, reference: String, size: Vector3<f32>) {
+  fn add_model_size(&mut self, reference: String, size: Vector3<f32>, terrain_data: Option<Vec<Vector3<f32>>>) {
     println!("Name: {}, size: {:?}", reference, size);
-    self.mut_data().model_sizes.push((reference, size));
+    self.mut_data().model_sizes.push((reference.to_string(), size));
+    if let Some(terrain_data) = terrain_data {
+      self.mut_data().terrain_data.push((reference.to_string(), terrain_data));
+    }
   }
   
   fn handle_input(&mut self, event: &winit::WindowEvent) -> bool {

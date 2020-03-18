@@ -41,7 +41,7 @@ pub trait GenericObject {
   fn data(&self) -> &ObjectData;
   fn mut_data(&mut self) -> &mut ObjectData;
   
-  fn update(&mut self, width: f32, height: f32, keys: &MappedKeys, model_sizes: &Vec<(String, Vector3<f32>)>, delta_time: f32);
+  fn update(&mut self, width: f32, height: f32, keys: &MappedKeys, model_sizes: &Vec<(String, Vector3<f32>)>, terrain_data: &Vec<(String, Vec<Vector3<f32>>)>, delta_time: f32);
   
   fn position(&self) -> Vector3<f32> {
     self.data().pos
