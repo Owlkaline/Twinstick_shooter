@@ -1,3 +1,4 @@
+use maat_graphics::math;
 use maat_graphics::DrawCall;
 use maat_graphics::camera::PerspectiveCamera;
 use maat_graphics::camera::PerspectiveCameraDirection;
@@ -19,12 +20,16 @@ const CAMERA_DEFAULT_PITCH: f32 = -62.27426;
 const CAMERA_DEFAULT_YAW: f32 = 210.10083;
 const CAMERA_DEFAULT_SPEED: f32 = 50.0;
 
+const CAMERA_ZOOM_SPEED: f32 = 0.05; // percentage per second
+
 pub struct PlayScreen {
   data: SceneData,
   rng: ThreadRng,
   camera: PerspectiveCamera,
   last_mouse_pos: Vector2<f32>,
   objects: Vec<Box<GenericObject>>,
+  character: Box<GenericObject>,
+  zoom: f32,
 }
 
 impl PlayScreen {
@@ -51,7 +56,6 @@ impl PlayScreen {
     let mut char_scale = 0.4;
     let mut character = Character::new(Vector3::new(0.0, 7.7735505*char_scale*0.3, 10.0));
     character.set_scale(Vector3::new(char_scale, char_scale, char_scale));
-    objects.push(Box::new(character));
     
     
     let mut floor = StaticObject::new(Vector3::new(0.0, 0.0, 0.0), "floor".to_string()).scale(Vector3::new(100.0, 1.0, 100.0));
@@ -63,6 +67,8 @@ impl PlayScreen {
       camera,
       last_mouse_pos: Vector2::new(-1.0, -1.0),
       objects,
+      character: Box::new(character),
+      zoom: 5.0,
     }
   }
 }
@@ -94,44 +100,44 @@ impl Scene for PlayScreen {
       for object in &mut self.objects {
         object.update(width, height, &keys, &model_sizes, delta_time);
       }
+      self.character.update(width, height, &keys, &model_sizes, delta_time);
+      
     }
-    self.camera.set_zoom(20.0);
     
-    //self.camera.set_target(Vector3::new(0.0, 0.0, 0.0));
-  /*  if self.data().keys.b_pressed() {
-      self.object_rotation.x += 90.0*delta_time;
+    if self.data().scroll_delta < 0.0 {
+      self.zoom += CAMERA_ZOOM_SPEED*self.zoom*self.zoom *delta_time + 0.01;
+      if self.zoom > 120.0 {
+        self.zoom = 120.0;
+      }
     }
-    if self.data().keys.n_pressed() {
-      self.object_rotation.y += 90.0*delta_time;
+    if self.data().scroll_delta > 0.0 {
+      self.zoom += -CAMERA_ZOOM_SPEED*self.zoom*self.zoom *delta_time - 0.01;
+      if self.zoom < 1.0 {
+        self.zoom = 1.0;
+      }
     }
-    if self.data().keys.m_pressed() {
-      self.object_rotation.z += 90.0*delta_time;
-    }*/
-    /*
-    if self.data().keys.q_pressed() {
-      self.camera.process_movement(PerspectiveCameraDirection::NegativeY, delta_time);
-    }
-    if self.data().keys.e_pressed() {
-      self.camera.process_movement(PerspectiveCameraDirection::PositiveY, delta_time);
-    }*/
+    
+    self.camera.set_target(self.character.position());
+    
+    let mut old_unit_vector = self.camera.get_front();
+    let mut goal_unit_vector = self.character.front_vector();
+    old_unit_vector.y = 0.0;
+    goal_unit_vector.y = 0.0;
+    let old_unit_vector = math::normalise_vector3(old_unit_vector);
+    let goal_unit_vector = math::normalise_vector3(goal_unit_vector);
+    let lerped_unit_vector = math::vec3_lerp(old_unit_vector, goal_unit_vector, 0.005);
+    
+
+    let camera_lerp_pos = self.character.position() - lerped_unit_vector*self.zoom + Vector3::new(0.0, self.zoom, 0.0);//*self.zoom + Vector3::new(0.0, self.zoom, 0.0);//
+    self.camera.set_position(camera_lerp_pos);
+    self.camera.set_up(Vector3::new(0.0, -1.0, 0.0));
+    self.camera.set_front(math::normalise_vector3(self.character.position()-self.camera.get_position()));
     
     if self.data().left_mouse_dragged {
       if self.last_mouse_pos != Vector2::new(-1.0, -1.0) {
         self.camera.process_mouse_movement(mouse_delta.x, mouse_delta.y*-1.0);
       }
     }
-    
-    //self.camera.update_orbiting_camera();
-    //self.camera.update_camera_vector();
-    /*
-    // finding out the models dimensions
-    for i in 0..self.data.model_sizes.len() {
-      for j in 0..self.known_models.len() {
-        if self.data.model_sizes[i].0 == self.known_models[j].0 {
-          self.known_models[j].2 = true;
-        }
-      }
-    }*/
     
     self.last_mouse_pos = mouse;
   }
@@ -141,42 +147,10 @@ impl Scene for PlayScreen {
     let (width, height) = (dim.x as f32, dim.y as f32);
     
     draw_calls.push(DrawCall::set_camera(self.camera.clone()));
-    /*
-    let mut house_height = 0.0;
-    let mut floor_height = 0.0;
     
-    for i in 0..self.data.model_sizes.len() {
-      if self.data.model_sizes[i].0 == "house".to_string() {
-        house_height = self.data.model_sizes[i].1.y;
-      }
-      if self.data.model_sizes[i].0 == "floor".to_string() {
-        floor_height = self.data.model_sizes[i].1.y;
-      }
-    }
-    
-    let hex_position = Vector3::new(0.0, house_height*0.5, 0.0);
-    let hex_size = Vector3::new(10.0, 10.0, 10.0);
-    let rot_x_size = Vector3::new(0.0, 0.0, 0.0);
-    let rot_y_size = Vector3::new(0.0, 0.0, 90.0);
-    let rot_z_size = Vector3::new(0.0, 90.0, 0.0);
-    let hex = String::from("house");
-   /* draw_calls.push(DrawCall::draw_model(hex_position,
-                                         hex_size,
-                                         self.object_rotation,
-                                         hex.to_string()));*/
-    draw_calls.push(DrawCall::add_instanced_model(hex.to_string(), 
-                                                  hex_position,
-                                                  hex_size,
-                                                  self.object_rotation));
-    
-    draw_calls.push(DrawCall::draw_model(Vector3::new(0.0, 0.0, 0.0),
-                                         Vector3::new(100.0, 1.0, 100.0),
-                                         Vector3::new(0.0, 0.0, 0.0),
-                                         "floor".to_string()));
-    
-    draw_calls.push(DrawCall::draw_instanced_model(hex.to_string()));*/
     for object in &self.objects {
       object.draw(draw_calls);
     }
+    self.character.draw(draw_calls);
   }
 }

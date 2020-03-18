@@ -43,10 +43,21 @@ pub trait GenericObject {
   
   fn update(&mut self, width: f32, height: f32, keys: &MappedKeys, model_sizes: &Vec<(String, Vector3<f32>)>, delta_time: f32);
   
-  // 270 deg works
-  // 180 left/right wrong way
-  // 90 deg works
-  // 0 left/right wrong way
+  fn position(&self) -> Vector3<f32> {
+    self.data().pos
+  }
+  
+  fn rotation(&self) -> Vector3<f32> {
+    self.data().rotation
+  }
+  
+  fn front_vector(&self) -> Vector3<f32> {
+    let y_rot = self.data().rotation.y;
+    let x = 1.0*math::to_radians(y_rot).sin();
+    let z = 1.0*math::to_radians(y_rot).cos();
+    
+    Vector3::new(x, 0.0, z)
+  }
   
   // Moves along all axes based on rotation, naively
   fn y_rot_movement(&mut self, delta_time: f32) {
