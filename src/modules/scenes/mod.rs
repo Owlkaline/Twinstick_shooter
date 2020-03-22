@@ -6,8 +6,8 @@ use maat_input_handler::Controller;
 use std::vec::Vec;
 
 use crate::winit;
-use crate::winit::MouseScrollDelta::LineDelta;
-use crate::winit::MouseScrollDelta::PixelDelta;
+use crate::winit::event::MouseScrollDelta::LineDelta;
+use crate::winit::event::MouseScrollDelta::PixelDelta;
 
 use crate::cgmath::{Vector2, Vector3};
 
@@ -35,7 +35,7 @@ pub struct SceneData {
   pub window_resized: bool,
   pub controller: Controller,
   pub model_sizes: Vec<(String, Vector3<f32>)>,
-  pub terrain_data: Vec<(String, Vec<Vector3<f32>>)>,
+  pub terrain_data: Vec<(String, Vec<Vec<f32>>)>,
   models_to_load: Vec<(String, String)>,
   models_to_unload: Vec<String>,
   fps_last_frame: f64,
@@ -43,7 +43,7 @@ pub struct SceneData {
 }
 
 impl SceneData {
-  pub fn new(window_size: Vector2<f32>, model_sizes: Vec<(String, Vector3<f32>)>, terrain_data: Vec<(String, Vec<Vector3<f32>>)>) -> SceneData {
+  pub fn new(window_size: Vector2<f32>, model_sizes: Vec<(String, Vector3<f32>)>, terrain_data: Vec<(String, Vec<Vec<f32>>)>) -> SceneData {
     SceneData {
       should_close: false,
       next_scene: false,
@@ -113,7 +113,7 @@ impl SceneData {
 pub trait Scene {
   fn data(&self) -> &SceneData;
   fn mut_data(&mut self) -> &mut SceneData;
-  fn future_scene(&mut self, window_size: Vector2<f32>) -> Box<Scene>;
+  fn future_scene(&mut self, window_size: Vector2<f32>) -> Box<dyn Scene>;
   
   fn update(&mut self, delta_time: f32);
   fn draw(&self, draw_calls: &mut Vec<DrawCall>);
@@ -173,7 +173,7 @@ pub trait Scene {
     self.mut_data().update_mouse_pos(mouse_position);
   }
   
-  fn add_model_size(&mut self, reference: String, size: Vector3<f32>, terrain_data: Option<Vec<Vector3<f32>>>) {
+  fn add_model_size(&mut self, reference: String, size: Vector3<f32>, terrain_data: Option<Vec<Vec<f32>>>) {
     println!("Name: {}, size: {:?}", reference, size);
     self.mut_data().model_sizes.push((reference.to_string(), size));
     if let Some(terrain_data) = terrain_data {
@@ -181,9 +181,109 @@ pub trait Scene {
     }
   }
   
-  fn handle_input(&mut self, event: &winit::WindowEvent) -> bool {
-    self.mut_data().released_this_render.clear();
-    
+  fn handle_event(&mut self, mut event: winit::event::Event<()>) {
+    match event {
+      winit::event::Event::WindowEvent { event: w_event, .. } => {
+        match w_event {
+          winit::event::WindowEvent::ReceivedCharacter(character) => {
+            if character.is_ascii() || character.is_ascii_control() || character.is_ascii_whitespace() {
+              let mut string_char = character.to_string();
+              
+              if character == '\n' || character == '\r' {
+                string_char = "Enter".to_string();
+              } else if character == '\x08' {
+                string_char = "Backspace".to_string();
+              } else if character.is_ascii_control() {
+                string_char = "".to_string();
+              }
+              
+              self.mut_data().keys.pressed_this_frame.push(string_char);
+            }
+          },
+          winit::event::WindowEvent::KeyboardInput{device_id: _, input, is_synthetic: _} => {
+            let key = input.scancode;
+            
+            if input.state == winit::event::ElementState::Pressed {
+              let mut already_pressed = false;
+              for pressed_key in self.data().currently_pressed.iter() {
+                if pressed_key == &key {
+                  already_pressed = true;
+                  break;
+                }
+              }
+              
+              if !already_pressed {
+                self.mut_data().currently_pressed.push(key);
+              }
+            }
+            
+            if input.state == winit::event::ElementState::Released {
+              self.mut_data().released_this_render.push(key);
+              let index = self.mut_data().currently_pressed.iter().position(|x| *x == key);
+              if index != None {
+                self.mut_data().currently_pressed.remove(index.unwrap());
+              }
+            }
+          },
+          winit::event::WindowEvent::MouseInput {device_id: _, state, button, ..} => {
+            if state == winit::event::ElementState::Pressed {
+              if button == winit::event::MouseButton::Left {
+                self.mut_data().left_mouse = true;
+                self.mut_data().left_mouse_dragged = true;
+              }
+              if button == winit::event::MouseButton::Right {
+                self.mut_data().right_mouse = true;
+                self.mut_data().right_mouse_dragged = true;
+              }
+              if button == winit::event::MouseButton::Middle {
+                self.mut_data().middle_mouse = true;
+              }
+            }
+            if state == winit::event::ElementState::Released {
+              if button == winit::event::MouseButton::Left {
+                self.mut_data().left_mouse = false;
+                self.mut_data().left_mouse_dragged = false;
+              }
+              if button == winit::event::MouseButton::Right {
+                self.mut_data().right_mouse = false;
+                self.mut_data().right_mouse_dragged = false;
+              }
+              if button == winit::event::MouseButton::Middle {
+                self.mut_data().middle_mouse = false;
+                self.mut_data().middle_mouse_dragged = false;
+              }
+            }
+          },
+          winit::event::WindowEvent::CursorMoved{device_id: _, position, modifiers: _} => {
+            println!("mouse pos: {:?}", position);
+            let mouse_pos = Vector2::new(position.x as f32, self.data().window_dim.y - position.y as f32);
+            self.mut_data().update_mouse_pos(mouse_pos);
+          },
+          _ => {}
+        }
+      },
+      winit::event::Event::DeviceEvent { event: d_event, .. } => {
+        match d_event {
+          winit::event::DeviceEvent::MouseWheel {delta, ..} => {
+            match delta {
+              PixelDelta(scroll_delta) => {
+                println!("Not used. Please contact Lilith@inet-sys.com: {}", scroll_delta.y);
+              },
+              LineDelta(_x, y) => {
+                // Scroll Delta is either -1, 0 or 1
+                self.mut_data().scroll_delta = -y;
+              },
+            }
+          },
+          _ => {},
+        }
+      },
+      _ => {},
+    }
+  }
+  
+  // call all events in this frame before this function (Handle_event)
+  fn handle_input(&mut self) -> bool {
     if self.data().left_mouse {
       self.mut_data().left_mouse_dragged = true;
     }
@@ -196,94 +296,18 @@ pub trait Scene {
       self.mut_data().middle_mouse_dragged = true;
     }
     
-    match event {
-      winit::WindowEvent::MouseWheel {device_id: _, delta, phase: _, modifiers: _} => {
-        match delta {
-          PixelDelta(scroll_delta) => {
-            println!("Not used. Please contact Lilith@inet-sys.com: {}", scroll_delta.y);
-          },
-          LineDelta(_x, y) => {
-            // Scroll Delta is either -1, 0 or 1
-            self.mut_data().scroll_delta = *y;
-          },
-        }
-      },
-      winit::WindowEvent::ReceivedCharacter(character) => {
-        if character.is_ascii() || character.is_ascii_control() || character.is_ascii_whitespace() {
-          let mut string_char = character.to_string();
-          
-          if *character == '\n' || *character == '\r' {
-            string_char = "Enter".to_string();
-          } else if *character == '\x08' {
-            string_char = "Backspace".to_string();
-          } else if character.is_ascii_control() {
-            string_char = "".to_string();
-          }
-          
-          self.mut_data().keys.pressed_this_frame.push(string_char);
-        }
-      },
-      winit::WindowEvent::KeyboardInput{device_id: _, input} => {
-        let key = input.scancode;
-        
-        if input.state == winit::ElementState::Pressed {
-          let mut already_pressed = false;
-          for pressed_key in self.data().currently_pressed.iter() {
-            if pressed_key == &key {
-              already_pressed = true;
-              break;
-            }
-          }
-          
-          if !already_pressed {
-            self.mut_data().currently_pressed.push(key);
-          }
-        }
-        
-        if input.state == winit::ElementState::Released {
-          self.mut_data().released_this_render.push(key);
-          let index = self.mut_data().currently_pressed.iter().position(|x| *x == key);
-          if index != None {
-            self.mut_data().currently_pressed.remove(index.unwrap());
-          }
-        }
-      },
-      winit::WindowEvent::MouseInput {device_id: _, state, button, modifiers: _} =>{
-        if *state == winit::ElementState::Pressed {
-          if *button == winit::MouseButton::Left {
-            self.mut_data().left_mouse = true;
-            self.mut_data().left_mouse_dragged = true;
-          }
-          if *button == winit::MouseButton::Right {
-            self.mut_data().right_mouse = true;
-            self.mut_data().right_mouse_dragged = true;
-          }
-          if *button == winit::MouseButton::Middle {
-            self.mut_data().middle_mouse = true;
-          }
-        }
-        if *state == winit::ElementState::Released {
-          if *button == winit::MouseButton::Left {
-            self.mut_data().left_mouse = false;
-            self.mut_data().left_mouse_dragged = false;
-          }
-          if *button == winit::MouseButton::Right {
-            self.mut_data().right_mouse = false;
-            self.mut_data().right_mouse_dragged = false;
-          }
-          if *button == winit::MouseButton::Middle {
-            self.mut_data().middle_mouse = false;
-            self.mut_data().middle_mouse_dragged = false;
-          }
-        }
-      },
-      _ => {},
-    }
     let cp = self.data().currently_pressed.clone();
     let rr = self.data().released_this_render.clone();
     self.mut_data().keys.update_keys(cp, rr);
     
     self.data().should_close
+  }
+  
+  // called at the end of every draw / start of a new frame
+  fn end_frame(&mut self) {
+    self.mut_data().released_this_render.clear();
+    self.reset_scroll_value();
+    
   }
   
   fn get_keys_pressed_this_frame(&self) -> Vec<String> {

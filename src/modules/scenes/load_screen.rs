@@ -36,7 +36,7 @@ impl Scene for LoadScreen {
     &mut self.data
   }
   
-  fn future_scene(&mut self, _window_size: Vector2<f32>) -> Box<Scene> {
+  fn future_scene(&mut self, _window_size: Vector2<f32>) -> Box<dyn Scene> {
     let dim = self.data().window_dim;
     Box::new(PlayScreen::new(dim, self.data.model_sizes.clone(), self.data.terrain_data.clone()))
   }
@@ -45,7 +45,7 @@ impl Scene for LoadScreen {
     self.logo_timer -= delta_time as f32;
     self.alpha = 1.0 - (self.logo_timer / (LOGO_TIMER*0.7));
     
-    if self.logo_timer <= 0.0 {
+    if self.logo_timer <= 0.0 && !self.first_loop {
       self.mut_data().next_scene = true;
     }
     
@@ -65,10 +65,11 @@ impl Scene for LoadScreen {
       draw_calls.push(DrawCall::load_model("hexagon".to_string()));
       draw_calls.push(DrawCall::load_model("fridge".to_string()));
       draw_calls.push(DrawCall::load_model("person".to_string()));
-      draw_calls.push(DrawCall::load_terrain_model("floor".to_string()));
+    //  draw_calls.push(DrawCall::load_terrain_model("floor".to_string()));
       draw_calls.push(DrawCall::load_model("house_one".to_string()));
       draw_calls.push(DrawCall::load_model("house_two".to_string()));
       draw_calls.push(DrawCall::load_model("house_double".to_string()));
+      draw_calls.push(DrawCall::load_model("unit_floor".to_string()));
     }
     
    // draw_calls.push(DrawCall::set_texture_scale(1.0));

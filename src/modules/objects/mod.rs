@@ -1,16 +1,31 @@
 pub use character::Character;
-pub use terrain::Terrain;
-pub use Static::StaticObject;
+pub use static_object::StaticObject;
+pub use moving_platform::MovingPlatform;
 
 mod character;
-mod terrain;
-mod Static;
+mod static_object;
+mod moving_platform;
 
 use maat_graphics::math;
-use maat_graphics::cgmath::Vector3;
+use maat_graphics::cgmath::{Vector3, Vector4};
 use maat_input_handler::MappedKeys;
 
 use maat_graphics::DrawCall;
+
+
+
+pub enum ObjectPhysicsType {
+  Dynamic, // collides with static and dynamic
+  Static, // doesnt collide with anything (but has physical presence)
+  Decorative,
+}
+
+#[derive(Clone)]
+pub enum CollisionType {
+  AABB(Vector3<f32>, Vector3<f32>),
+  Sphere(Vector4<f32>),
+  Point(Vector3<f32>),
+}
 
 pub struct ObjectData {
   pos: Vector3<f32>,
@@ -21,6 +36,11 @@ pub struct ObjectData {
   // velocity
   vel: Vector3<f32>,
   rel_vel: Vector3<f32>,
+  
+  physics_type: ObjectPhysicsType,
+  collision_data: Vec<CollisionType>,
+  
+  last_known_size: Vector3<f32>,
 }
 
 impl ObjectData {
@@ -33,7 +53,21 @@ impl ObjectData {
       
       vel: Vector3::new(0.0, 0.0, 0.0),
       rel_vel: Vector3::new(0.0, 0.0, 0.0), // Vec3(Forward, up, right)
+      
+      physics_type: ObjectPhysicsType::Decorative,
+      collision_data: Vec::new(),
+      last_known_size: Vector3::new(1.0, 1.0, 1.0),
     }
+  }
+  
+  pub fn dynamic_physics(mut self) -> ObjectData {
+    self.physics_type = ObjectPhysicsType::Dynamic;
+    self
+  }
+  
+  pub fn static_physics(mut self) -> ObjectData {
+    self.physics_type = ObjectPhysicsType::Static;
+    self
   }
 }
 
@@ -41,7 +75,10 @@ pub trait GenericObject {
   fn data(&self) -> &ObjectData;
   fn mut_data(&mut self) -> &mut ObjectData;
   
-  fn update(&mut self, width: f32, height: f32, keys: &MappedKeys, model_sizes: &Vec<(String, Vector3<f32>)>, terrain_data: &Vec<(String, Vec<Vector3<f32>>)>, delta_time: f32);
+  fn update(&mut self, width: f32, height: f32, keys: &MappedKeys, model_sizes: &Vec<(String, Vector3<f32>)>, terrain_data: &Vec<(String, Vec<Vec<f32>>)>, delta_time: f32);
+  fn physics_update(&mut self, delta_time: f32);
+  
+  fn collided_with_dynamic_object(&self, dynamic_object: &mut Box<dyn GenericObject>, collision_type: CollisionType);
   
   fn position(&self) -> Vector3<f32> {
     self.data().pos
@@ -49,6 +86,18 @@ pub trait GenericObject {
   
   fn rotation(&self) -> Vector3<f32> {
     self.data().rotation
+  }
+  
+  fn collision_data(&self) -> Vec<CollisionType> {
+    self.data().collision_data.clone()
+  }
+  
+  fn last_known_size(&self) -> Vector3<f32> {
+    self.data().last_known_size
+  }
+  
+  fn set_position(&mut self, pos: Vector3<f32>) {
+    self.mut_data().pos = pos; //+ Vector3::new(0.0, self.data().last_known_size.y * 0.5, 0.0);
   }
   
   fn front_vector(&self) -> Vector3<f32> {
@@ -83,6 +132,10 @@ pub trait GenericObject {
   
   fn set_scale(&mut self, scale: Vector3<f32>) {
     self.mut_data().scale = scale;
+  }
+  
+  fn set_rotation(&mut self, rotation: Vector3<f32>) {
+    self.mut_data().rotation = rotation;
   }
   
   fn draw(&self, draw_calls: &mut Vec<DrawCall>) {
