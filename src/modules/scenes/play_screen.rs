@@ -1,5 +1,7 @@
 use maat_graphics::math;
+use maat_graphics::math::Vector3Math;
 use maat_graphics::DrawCall;
+use maat_graphics::ModelData;
 use maat_graphics::camera::PerspectiveCamera;
 use maat_graphics::camera::PerspectiveCameraDirection;
 
@@ -32,10 +34,11 @@ pub struct PlayScreen {
   decorative_objects: Vec<Box<dyn GenericObject>>,
   character_idx: usize,//Box<GenericObject>,
   zoom: f32,
+  debug: bool,
 }
 
 impl PlayScreen {
-  pub fn new(window_size: Vector2<f32>, model_sizes: Vec<(String, Vector3<f32>)>, terrain_data: Vec<(String, Vec<Vec<f32>>)>) -> PlayScreen {
+  pub fn new(window_size: Vector2<f32>, model_data: Vec<ModelData>) -> PlayScreen {
     let mut rng = thread_rng();
     
     let mut camera = PerspectiveCamera::default_vk();
@@ -51,33 +54,45 @@ impl PlayScreen {
     let mut static_objects: Vec<Box<dyn GenericObject>> = Vec::new();
     let mut decorative_objects: Vec<Box<dyn GenericObject>> = Vec::new();
     
-    let mut char_scale = 0.4;
-    let mut character = Character::new(Vector3::new(50.0, 170.0, 50.0));
+    let mut char_scale = 0.5;//0.4;
+    let mut character = Character::new(Vector3::new(10.0, 20.0, 10.0));
     character.set_scale(Vector3::new(char_scale, char_scale, char_scale));
     
     dynamic_objects.push(Box::new(character));
-    
-    let house_scale = 2.0;
+    /*
+    let house_scale = 1.0;
     
     for i in 0..10 {
       static_objects.push(Box::new(StaticObject::new(Vector3::new(0.0, 98.03922+4.8*house_scale*0.5 +4.7*2.0*house_scale*i as f32, 0.0), "house_two".to_string()).scale(Vector3::new(house_scale, house_scale, house_scale))));
-    }
+    }*/
+    
+    static_objects.push(Box::new(StaticObject::new(Vector3::new(0.0, 2.0, 0.0), "flat_ramp".to_string())));
+    static_objects.push(Box::new(StaticObject::new(Vector3::new(6.0, 6.0, 0.0), "flat_wall".to_string())));
+    static_objects.push(Box::new(StaticObject::new(Vector3::new(-10.0, 6.0, 0.0), "static_collision_test".to_string())));
+    static_objects.push(Box::new(StaticObject::new(Vector3::new(0.0, 6.0, 20.0), "floor_wall".to_string())));
     
     let mut floor = StaticObject::new(Vector3::new(0.0, 0.0, 0.0), "floor".to_string()).scale(Vector3::new(1.0, 1.0, 1.0));
     
     decorative_objects.push(Box::new(floor));
     
-    let mut unit_floor = MovingPlatform::new(Vector3::new(50.0, 150.0, 50.0), "unit_floor".to_string()).scale(Vector3::new(10.0, 1.0, 10.0));
+    let mut ground_floor = StaticObject::new(Vector3::new(0.0, 88.0, 0.0), "unit_floor".to_string()).scale(Vector3::new(800.0, 10.0, 800.0));
+    let mut unit_floor = StaticObject::new(Vector3::new(50.0, 150.0, 50.0), "unit_floor".to_string()).scale(Vector3::new(10.0, 10.0, 10.0));
     //let mut unit_floor1 = StaticObject::new(Vector3::new(55.0, 151.0, 50.0), "unit_floor".to_string()).scale(Vector3::new(10.0, 1.0, 10.0));
-    let mut unit_floor2 = StaticObject::new(Vector3::new(60.0, 151.0, 50.0), "unit_floor".to_string()).scale(Vector3::new(10.0, 1.0, 10.0));
-    let mut unit_floor3 = StaticObject::new(Vector3::new(65.0, 153.0, 50.0), "unit_floor".to_string()).scale(Vector3::new(10.0, 1.0, 10.0));
+    let mut unit_floor2 = StaticObject::new(Vector3::new(60.0, 151.0, 50.0), "unit_floor".to_string()).scale(Vector3::new(10.0, 10.0, 10.0));
+    let mut unit_floor3 = StaticObject::new(Vector3::new(65.0, 153.0, 50.0), "unit_floor".to_string()).scale(Vector3::new(10.0, 10.0, 10.0));
+    
+    let mut hug_cube = StaticObject::new(Vector3::new(30.0, 110.0, 30.0), "hug_cube".to_string()).scale(Vector3::new(2.0, 2.0, 2.0));
+    
+    static_objects.push(Box::new(ground_floor));
     static_objects.push(Box::new(unit_floor));
     //static_objects.push(Box::new(unit_floor1));
     static_objects.push(Box::new(unit_floor2));
     static_objects.push(Box::new(unit_floor3));
     
+    static_objects.push(Box::new(hug_cube));
+    
     PlayScreen {
-      data: SceneData::new(window_size, model_sizes, terrain_data),
+      data: SceneData::new(window_size, model_data),
       rng,
       camera,
       last_mouse_pos: Vector2::new(-1.0, -1.0),
@@ -86,6 +101,7 @@ impl PlayScreen {
       decorative_objects,
       character_idx: 0,//Box::new(character),
       zoom: 5.0,
+      debug: false,
     }
   }
 }
@@ -101,7 +117,7 @@ impl Scene for PlayScreen {
   
   fn future_scene(&mut self, window_size: Vector2<f32>) -> Box<dyn Scene> {
     let dim = self.data().window_dim;
-    Box::new(PlayScreen::new(dim, self.data.model_sizes.clone(), self.data.terrain_data.clone()))
+    Box::new(PlayScreen::new(dim, self.data.model_data.clone()))
   }
   
   fn update(&mut self, delta_time: f32) {
@@ -111,20 +127,38 @@ impl Scene for PlayScreen {
     let mut mouse = self.data().mouse_pos;
     let mut mouse_delta = self.last_mouse_pos - mouse;
     
-    {
+    if self.data().keys.p_pressed() {
+      self.debug = !self.debug;
+    }
+    
+    { 
+      
+      /*
+      let model_sizes = self.data().model_data.clone().into_iter().map(|md| (md.name(), md.size())).collect::<Vec<(String, Vector3<f32>)>>();
+     // let terrain_data = self.data().model_data.clone().into_iter().filter(|x| x.is_terrain_data()).map(|md| md.get_terrain_data()).collect::<Vec<(String, Vec<Vec<f32>>)>>();
+      let terrain_data = {
+        let mut terrain_data = Vec::new();
+        for i in 0..self.data().model_data.len() {
+       //   println!("Name: {}, Num Collision: {}", self.data().model_data[i].name(), self.data().model_data[i].num_collision_info());
+          if self.data().model_data[i].is_terrain_data() {
+            terrain_data.push(self.data().model_data[i].get_terrain_data());
+          }
+        }
+        //println!("Terrain length: {}", terrain_data.len());
+        terrain_data
+      };*/
       let keys = self.data().keys.clone();
-      let model_sizes = self.data().model_sizes.clone();
-      let terrain_data = self.data().terrain_data.clone();
+      let model_data = self.data().model_data.clone();
       for object in &mut self.dynamic_objects {
-        object.update(width, height, &keys, &model_sizes, &terrain_data, delta_time);
+        object.update(width, height, &keys, &model_data, delta_time);
         object.physics_update(delta_time);
       }
       for object in &mut self.static_objects {
-        object.update(width, height, &keys, &model_sizes, &terrain_data, delta_time);
+        object.update(width, height, &keys, &model_data, delta_time);
         object.physics_update(delta_time);
       }
       for object in &mut self.decorative_objects {
-        object.update(width, height, &keys, &model_sizes, &terrain_data, delta_time);
+        object.update(width, height, &keys, &model_data, delta_time);
         object.physics_update(delta_time);
       }
     }
@@ -169,7 +203,7 @@ impl Scene for PlayScreen {
         self.camera.process_mouse_movement(mouse_delta.x, mouse_delta.y*-1.0);
       }
     }
-    println!("pos: {:?}", mouse);
+    
     self.last_mouse_pos = mouse;
   }
   
@@ -180,13 +214,15 @@ impl Scene for PlayScreen {
     draw_calls.push(DrawCall::set_camera(self.camera.clone()));
     
     for object in &self.dynamic_objects {
-      object.draw(draw_calls);
+      object.draw(draw_calls, self.debug);
     }
     for object in &self.static_objects {
-      object.draw(draw_calls);
+      object.draw(draw_calls, self.debug);
     }
     for object in &self.decorative_objects {
-      object.draw(draw_calls);
+      object.draw(draw_calls, self.debug);
     }
+    
+    
   }
 }

@@ -4,6 +4,8 @@ use maat_graphics::generate_terrain;
 use crate::modules::objects::{GenericObject, ObjectData, CollisionType};
 use maat_input_handler::MappedKeys;
 
+use maat_graphics::ModelData;
+
 const SPEED: f32 = 7.0;
 const ROT_SPEED: f32 = 90.0;
 
@@ -13,7 +15,7 @@ pub struct Character {
 
 impl Character {
   pub fn new(pos: Vector3<f32>) -> Character {
-    let mut data = ObjectData::new(pos, "person".to_string()).dynamic_physics();
+    let mut data = ObjectData::new(pos, "unit_cube".to_string()).dynamic_physics();
     data.rotation.y = 180.0;
     
     Character {
@@ -31,11 +33,11 @@ impl GenericObject for Character {
     &mut self.data
   }
   
-  fn collided_with_dynamic_object(&self, dynamic_object: &mut Box<dyn GenericObject>, collision_type: CollisionType) {
+  fn collided_with_dynamic_object(&self, i: usize, j: usize,  dynamic_object: &mut Box<dyn GenericObject>) {
     
   }
   
-  fn update(&mut self, width: f32, height: f32, keys: &MappedKeys, model_sizes: &Vec<(String, Vector3<f32>)>, terrain_heights: &Vec<(String, Vec<Vec<f32>>)>, delta_time: f32) {
+  fn update(&mut self, width: f32, height: f32, keys: &MappedKeys, model_data: &Vec<ModelData>, delta_time: f32) {
     //println!("Physics y: {:?}", Box::new(self as &mut ObjectPhysics).collision_detail());
     
     let mut close_vectors = [(0, 0.0), (0, 0.0), (0, 0.0)];
@@ -43,24 +45,15 @@ impl GenericObject for Character {
     let mut crnt_pos = Vector2::new(self.data().pos.x, self.data().pos.z);
     
     let mut terrain_height = 0.0;
-    
+    /*
     for i in 0..terrain_heights.len() {
       if terrain_heights[i].0 == "floor".to_string() {
         terrain_height = generate_terrain::calculate_xz_height(&terrain_heights[i].1, self.data().pos.x, self.data().pos.z);
       }
-    }
+    }*/
     
-    let mut model_size = Vector3::new(1.0, 1.0, 1.0);
-    let mut unit_floor = Vector3::new(1.0, 1.0, 1.0);
-    for i in 0..model_sizes.len() {
-      if model_sizes[i].0 == self.data().model.to_string() {
-        model_size.x = model_sizes[i].1.x*self.data().scale.x;
-        model_size.y = model_sizes[i].1.y*self.data().scale.y;
-        model_size.z = model_sizes[i].1.z*self.data().scale.z;
-        self.mut_data().last_known_size = model_size;
-        break;
-      }
-    }
+    
+    //let mut unit_floor = Vector3::new(1.0, 1.0, 1.0);
     
     if keys.w_pressed() {
       self.mut_data().rel_vel.z = SPEED;
@@ -100,10 +93,17 @@ impl GenericObject for Character {
       self.mut_data().vel.x = 0.0;
     }
     
-    self.mut_data().collision_data.clear();
-    let location = self.data().pos;
-    self.mut_data().collision_data.push(CollisionType::AABB(location, model_size));
-    self.mut_data().vel.y = -9.8;
+    if keys.space_pressed() {
+      self.mut_data().vel.y = 50.0;
+  //    self.mut_data().pos.y += 1.0*delta_time;
+    }
+    
+    self.update_collision_data(model_data);
+    //println!("CHARACTER: last known size: {:?}", self.data().last_known_size);
+    self.mut_data().vel.y -= 9.8;
+    if self.data().vel.y < -9.8 {
+      self.mut_data().vel.y = -9.8;
+    }
     // Square collision box
     /*let box_location = Vector3::new(50.0, 150.0, 50.0);
     let box_size = Vector3::new(unit_floor.x*10.0, unit_floor.y*1.0, unit_floor.z*10.0);

@@ -38,7 +38,7 @@ impl Scene for LoadScreen {
   
   fn future_scene(&mut self, _window_size: Vector2<f32>) -> Box<dyn Scene> {
     let dim = self.data().window_dim;
-    Box::new(PlayScreen::new(dim, self.data.model_sizes.clone(), self.data.terrain_data.clone()))
+    Box::new(PlayScreen::new(dim, self.data.model_data.clone()))
   }
   
   fn update(&mut self, delta_time: f32) {
@@ -58,21 +58,26 @@ impl Scene for LoadScreen {
   fn draw(&self, draw_calls: &mut Vec<DrawCall>) {
     let dim = self.data().window_dim;
     let (width, height) = (dim.x as f32, dim.y as f32);
-    
     if self.first_loop {
       draw_calls.push(DrawCall::load_texture("background".to_string()));
       
       draw_calls.push(DrawCall::load_model("hexagon".to_string()));
       draw_calls.push(DrawCall::load_model("fridge".to_string()));
-      draw_calls.push(DrawCall::load_model("person".to_string()));
-    //  draw_calls.push(DrawCall::load_terrain_model("floor".to_string()));
+      draw_calls.push(DrawCall::load_model("playerone".to_string()));
+      
       draw_calls.push(DrawCall::load_model("house_one".to_string()));
       draw_calls.push(DrawCall::load_model("house_two".to_string()));
       draw_calls.push(DrawCall::load_model("house_double".to_string()));
       draw_calls.push(DrawCall::load_model("unit_floor".to_string()));
+      draw_calls.push(DrawCall::load_model("hug_cube".to_string()));
+      draw_calls.push(DrawCall::load_model("debug_cube".to_string()));
+      draw_calls.push(DrawCall::load_model("flat_ramp".to_string()));
+      draw_calls.push(DrawCall::load_model("flat_wall".to_string()));
+      draw_calls.push(DrawCall::load_model("unit_cube".to_string()));
+      draw_calls.push(DrawCall::load_model("unit_cube1".to_string()));
+      draw_calls.push(DrawCall::load_model("floor_wall".to_string()));
+      draw_calls.push(DrawCall::load_model("static_collision_test".to_string()));
     }
-    
-   // draw_calls.push(DrawCall::set_texture_scale(1.0));
     
     draw_calls.push(
         DrawCall::draw_coloured(Vector2::new(width*0.5, height*0.5),

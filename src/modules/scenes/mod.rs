@@ -1,15 +1,16 @@
 use maat_graphics::DrawCall;
+use maat_graphics::ModelData;
 
 use maat_input_handler::MappedKeys;
 use maat_input_handler::Controller;
 
 use std::vec::Vec;
 
-use crate::winit;
-use crate::winit::event::MouseScrollDelta::LineDelta;
-use crate::winit::event::MouseScrollDelta::PixelDelta;
+use maat_graphics::winit;
+use maat_graphics::winit::event::MouseScrollDelta::LineDelta;
+use maat_graphics::winit::event::MouseScrollDelta::PixelDelta;
 
-use crate::cgmath::{Vector2, Vector3};
+use maat_graphics::cgmath::{Vector2, Vector3};
 
 pub use self::load_screen::LoadScreen;
 pub use self::play_screen::PlayScreen;
@@ -34,8 +35,7 @@ pub struct SceneData {
   pub keys: MappedKeys,
   pub window_resized: bool,
   pub controller: Controller,
-  pub model_sizes: Vec<(String, Vector3<f32>)>,
-  pub terrain_data: Vec<(String, Vec<Vec<f32>>)>,
+  pub model_data: Vec<ModelData>,
   models_to_load: Vec<(String, String)>,
   models_to_unload: Vec<String>,
   fps_last_frame: f64,
@@ -43,7 +43,7 @@ pub struct SceneData {
 }
 
 impl SceneData {
-  pub fn new(window_size: Vector2<f32>, model_sizes: Vec<(String, Vector3<f32>)>, terrain_data: Vec<(String, Vec<Vec<f32>>)>) -> SceneData {
+  pub fn new(window_size: Vector2<f32>, model_data: Vec<ModelData>) -> SceneData {
     SceneData {
       should_close: false,
       next_scene: false,
@@ -61,8 +61,7 @@ impl SceneData {
       keys: MappedKeys::new(),
       window_resized: false,
       controller: Controller::new(),
-      model_sizes,
-      terrain_data,
+      model_data,
       models_to_load: Vec::new(),
       models_to_unload: Vec::new(),
       fps_last_frame: 0.0,
@@ -88,8 +87,7 @@ impl SceneData {
       keys: MappedKeys::new(),
       window_resized: false,
       controller: Controller::new(),
-      model_sizes: Vec::new(),
-      terrain_data: Vec::new(),
+      model_data: Vec::new(),
       models_to_load: Vec::new(),
       models_to_unload: Vec::new(),
       fps_last_frame: 0.0,
@@ -123,7 +121,6 @@ pub trait Scene {
     self.mut_data().should_resize_window = None;
     
     resize
-    
   }
   
   fn scene_finished(&self) -> bool {
@@ -148,15 +145,15 @@ pub trait Scene {
   fn get_models_to_unload(&mut self) -> Vec<String> {
     let mut idxs = Vec::new();
     for i in 0..self.data().models_to_unload.len() {
-      for j in 0..self.data().model_sizes.len() {
-        if self.data().model_sizes[j].0 == self.data().models_to_unload[i] {
+      for j in 0..self.data().model_data.len() {
+        if self.data().model_data[j].name() == self.data().models_to_unload[i] {
           idxs.push(j);
         }
       }
     }
     
     for i in 0..idxs.len() {
-      self.mut_data().model_sizes.remove(idxs[i]-i);
+      self.mut_data().model_data.remove(idxs[i]-i);
     }
     
     let models = self.data().models_to_unload.clone();
@@ -173,12 +170,9 @@ pub trait Scene {
     self.mut_data().update_mouse_pos(mouse_position);
   }
   
-  fn add_model_size(&mut self, reference: String, size: Vector3<f32>, terrain_data: Option<Vec<Vec<f32>>>) {
-    println!("Name: {}, size: {:?}", reference, size);
-    self.mut_data().model_sizes.push((reference.to_string(), size));
-    if let Some(terrain_data) = terrain_data {
-      self.mut_data().terrain_data.push((reference.to_string(), terrain_data));
-    }
+  fn add_model_data(&mut self, model_data: ModelData) {
+    println!("Name: {}, size: {:?}", model_data.name(), model_data.size());
+    self.mut_data().model_data.push(model_data);
   }
   
   fn handle_event(&mut self, mut event: winit::event::Event<()>) {
@@ -254,8 +248,7 @@ pub trait Scene {
               }
             }
           },
-          winit::event::WindowEvent::CursorMoved{device_id: _, position, modifiers: _} => {
-            println!("mouse pos: {:?}", position);
+          winit::event::WindowEvent::CursorMoved{device_id: _, position, ..} => {
             let mouse_pos = Vector2::new(position.x as f32, self.data().window_dim.y - position.y as f32);
             self.mut_data().update_mouse_pos(mouse_pos);
           },

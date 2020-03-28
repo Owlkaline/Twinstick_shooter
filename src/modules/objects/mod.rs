@@ -7,7 +7,9 @@ mod static_object;
 mod moving_platform;
 
 use maat_graphics::math;
-use maat_graphics::cgmath::{Vector3, Vector4};
+use maat_graphics::math::Vector3Math;
+use maat_graphics::ModelData;
+use maat_graphics::cgmath::{Vector3, Vector4, Zero, Euler, Quaternion};
 use maat_input_handler::MappedKeys;
 
 use maat_graphics::DrawCall;
@@ -22,7 +24,7 @@ pub enum ObjectPhysicsType {
 
 #[derive(Clone)]
 pub enum CollisionType {
-  AABB(Vector3<f32>, Vector3<f32>),
+  AABB(Vector3<f32>, Vector3<f32>, Vector4<f32>),
   Sphere(Vector4<f32>),
   Point(Vector3<f32>),
 }
@@ -75,10 +77,46 @@ pub trait GenericObject {
   fn data(&self) -> &ObjectData;
   fn mut_data(&mut self) -> &mut ObjectData;
   
-  fn update(&mut self, width: f32, height: f32, keys: &MappedKeys, model_sizes: &Vec<(String, Vector3<f32>)>, terrain_data: &Vec<(String, Vec<Vec<f32>>)>, delta_time: f32);
+  fn update(&mut self, width: f32, height: f32, keys: &MappedKeys, model_data: &Vec<ModelData>, delta_time: f32);
   fn physics_update(&mut self, delta_time: f32);
   
-  fn collided_with_dynamic_object(&self, dynamic_object: &mut Box<dyn GenericObject>, collision_type: CollisionType);
+  fn collided_with_dynamic_object(&self, i: usize, j: usize,  dynamic_object: &mut Box<dyn GenericObject>);
+  
+  fn update_collision_data(&mut self, model_data: &Vec<ModelData>) {
+    self.mut_data().collision_data.clear();
+    
+    let mut bounding_box_size = Vector3::new(1.0, 1.0, 1.0);
+    for i in 0..model_data.len() {
+      if model_data[i].name() == self.data().model.to_string() {
+        let mut bounding_box_size = Vector3::new(0.0, 0.0, 0.0);
+        bounding_box_size.x = model_data[i].size().x;
+        bounding_box_size.y = model_data[i].size().y;
+        bounding_box_size.z = model_data[i].size().z;
+        for j in 0..model_data[i].num_collision_info() {
+          let offset_pos = model_data[i].collision_info()[j].offset_position();
+          let offset_pos = Vector3::new(-offset_pos.x*self.data().scale.x, offset_pos.y*self.data().scale.y, -offset_pos.z*self.data().scale.z);
+          let pos = self.data().pos + offset_pos;
+          let size = model_data[i].collision_info()[j].size();
+          let quaternion = model_data[i].collision_info()[j].quaternion();
+          
+        //  let euler = Euler::from(quaternion);
+          
+          let size = Vector3::new(size.x*self.data().scale.x, size.y*self.data().scale.y, size.z*self.data().scale.z);
+          
+          self.mut_data().collision_data.push(CollisionType::AABB(pos, size, quaternion));
+        }
+        break;
+      }
+    }
+    
+    self.mut_data().last_known_size = Vector3::new(bounding_box_size.x, 
+                                                   bounding_box_size.y, 
+                                                   bounding_box_size.z);
+  }
+  
+  fn model(&self) -> &str {
+    &self.data().model
+  }
   
   fn position(&self) -> Vector3<f32> {
     self.data().pos
@@ -138,10 +176,33 @@ pub trait GenericObject {
     self.mut_data().rotation = rotation;
   }
   
-  fn draw(&self, draw_calls: &mut Vec<DrawCall>) {
-    draw_calls.push(DrawCall::draw_model(self.data().pos,
-                                         self.data().scale,
-                                         self.data().rotation,
-                                         self.data().model.to_string()));
+  fn draw(&self, draw_calls: &mut Vec<DrawCall>, debug: bool) {
+    if !debug {
+      draw_calls.push(DrawCall::draw_model(self.data().pos,
+                                           self.data().scale,
+                                           self.data().rotation,
+                                           self.data().model.to_string()));
+      if self.data().model == "unit_cube" {
+        draw_calls.push(DrawCall::draw_model(self.data().pos + Vector3::new(1.0, 0.0, 0.0),
+                                             self.data().scale,
+                                             self.data().rotation,
+                                             "unit_cube1".to_string()));
+      }
+    } else {
+     for i in 0..self.data().collision_data.len() {
+       match self.data().collision_data[i] {
+         CollisionType::AABB(a_pos, a_size, quaternion) => {
+           let rot = Euler::from(Quaternion::new(quaternion.x, quaternion.y, quaternion.z, quaternion.w));
+           let mut rotation = Vector3::new(math::to_degrees(rot.x.0), math::to_degrees(rot.y.0), math::to_degrees(rot.z.0));
+           println!("{}: Rotation {:?}", self.data().model, rotation);
+           draw_calls.push(DrawCall::draw_model(a_pos,
+                                                a_size,
+                                                rotation,
+                                                "debug_cube".to_string()));
+         },
+         _ => {}
+       }
+     }
+    }
   }
 }

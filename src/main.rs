@@ -57,21 +57,21 @@ fn main() {
   graphics.preload_texture(String::from("Logo"), 
                            String::from("./resources/textures/Logo.png"));
   
-  let floor = generate_terrain::generate_terrain_from_image("./resources/models/terrain/heightmap.png".to_string());
+  let floor = generate_terrain::generate_terrain_from_image("floor".to_string(), "./resources/models/terrain/heightmap.png".to_string());
   
   //let floor = generate_terrain::generate_flat_terrain();
   
   // background
   graphics.add_texture("background".to_string(), "./resources/textures/background.png".to_string());
   
-  graphics.add_terrain("floor".to_string(), floor);
+  graphics.add_terrain(floor);
   graphics.add_model("house_one".to_string(), 
                        "./resources/models/house_one.glb".to_string());
   graphics.add_model("house_two".to_string(), 
                        "./resources/models/house_two.glb".to_string());
   graphics.add_model("house_double".to_string(), 
                        "./resources/models/house_double.glb".to_string());
-  graphics.add_model("person".to_string(), 
+  graphics.add_model("playerone".to_string(), 
                        "./resources/models/playerone.glb".to_string());
   graphics.add_model("hexagon".to_string(), 
                        "./resources/models/hexagon.glb".to_string());
@@ -81,9 +81,26 @@ fn main() {
                        "./resources/models/floor.glb".to_string());
   graphics.add_model("unit_floor".to_string(), 
                        "./resources/models/unit_floor.glb".to_string());
+  graphics.add_model("hug_cube".to_string(), 
+                       "./resources/models/hug_cube.glb".to_string());
+  graphics.add_model("debug_cube".to_string(), 
+                       "./resources/models/debug_cube.glb".to_string());
+  graphics.add_model("flat_ramp".to_string(),
+                      "./resources/models/45DeFlat.glb".to_string());
+  graphics.add_model("flat_wall".to_string(),
+                      "./resources/models/45DeUpAndDown.glb".to_string());
+  graphics.add_model("static_collision_test".to_string(),
+                      "./resources/models/45DeToia.glb".to_string());
+  graphics.add_model("floor_wall".to_string(),
+                      "./resources/models/45DeDeux.glb".to_string());
+  
+  graphics.add_model("unit_cube".to_string(),
+                      "./resources/models/unit_cube.glb".to_string());
+  graphics.add_model("unit_cube1".to_string(),
+                      "./resources/models/unit_cube1.glb".to_string());
   
   graphics.load_shaders();
-  graphics.create_model_instance_buffer("house".to_string());
+  graphics.create_model_instance_buffer("house_two".to_string());
   graphics.set_clear_colour(0.2, 0.2, 0.2, 1.0);
   
   let mut game: Box<dyn Scene> = Box::new(LoadScreen::new());
@@ -103,8 +120,21 @@ fn main() {
   let mut total_delta_time = 0.0;
   let mut count = 0;
   
+  let mut is_first_loop = true;
+  
+  let mut focused = true;
+  
   event_loop.run(move |event, _, control_flow| {
     match event {
+      winit::event::Event::Resumed => {
+        focused = true;
+      },
+      winit::event::Event::Suspended => {
+        focused = false;
+      },
+      winit::event::Event::WindowEvent { event: winit::event::WindowEvent::Focused(is_focused), .. } => {
+        focused = is_focused;
+      },
       winit::event::Event::WindowEvent { event: winit::event::WindowEvent::CloseRequested, .. } => {
          *control_flow = winit::event_loop::ControlFlow::Exit;
       },
@@ -115,6 +145,12 @@ fn main() {
         delta_time = last_time.elapsed().subsec_nanos() as f64 / 1000000000.0 as f64;
         last_time = time::Instant::now();
         total_delta_time += delta_time as f32;
+        
+        if is_first_loop || !focused {
+          delta_time = 0.0;
+          total_delta_time = 0.0;
+          is_first_loop = false;
+        }
         
         frame_counter += 1;
         fps_timer += delta_time;
@@ -128,7 +164,9 @@ fn main() {
         dimensions = graphics.get_virtual_dimensions();
         
         if game.scene_finished() {
-          game = game.future_scene(dimensions);
+          if graphics.is_ready() {
+            game = game.future_scene(dimensions);
+          }
         }
         
         game.set_window_dimensions(dimensions);
@@ -157,13 +195,8 @@ fn main() {
         
         draw_calls.clear();
         
-        for (reference, size, terrain_data) in &model_details {
-          println!("{:?} {:?}", reference, size);
-          let mut data = None;
-          if let Some(t_d) = terrain_data {
-            data = Some(t_d.clone());
-          }
-          game.add_model_size(reference.to_string(), *size, data);
+        for model_data in model_details {
+          game.add_model_data(model_data);
         }
         
         if let Some((new_size, fullscreen)) = game.should_force_window_resize() {
@@ -177,6 +210,4 @@ fn main() {
       },
     }
   });
-  
-  println!("Game Loop ended");
 }
