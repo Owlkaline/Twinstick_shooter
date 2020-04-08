@@ -15,13 +15,10 @@ use crate::modules::scenes::LoadScreen;
 use maat_graphics::graphics::CoreRender;
 use maat_graphics::CoreMaat;
 use maat_graphics::DrawCall;
-use maat_graphics::generate_terrain;
 
 use cgmath::{Vector2, Vector4};
 
 use std::time;
-
-use crate::maat_graphics::winit::platform::desktop::EventLoopExtDesktop;
 
 const MAJOR: u32 = 0;
 const MINOR: u32 = 0;
@@ -41,7 +38,7 @@ fn fps_overlay(draw_calls: &mut Vec<DrawCall>, dimensions: Vector2<f32>, fps: f6
   let  mut fps = fps.to_string();
   fps.truncate(6);
   
-  draw_calls.push(DrawCall::draw_text_basic(Vector2::new(32.0, dimensions.y-48.0), 
+  draw_calls.push(DrawCall::draw_text_basic(Vector2::new(dimensions.x-120.0, dimensions.y-48.0), 
                                            Vector2::new(64.0, 64.0), 
                                            Vector4::new(1.0, 1.0, 1.0, 1.0), 
                                            "fps: ".to_string() + &fps, 
@@ -49,7 +46,7 @@ fn fps_overlay(draw_calls: &mut Vec<DrawCall>, dimensions: Vector2<f32>, fps: f6
 }
 
 fn main() {
-  let (mut graphics, mut event_loop) = CoreMaat::new("TheTower".to_string(), (MAJOR) << 22 | (MINOR) << 12 | (PATCH), 1280.0, 1080.0, true);
+  let (mut graphics, event_loop) = CoreMaat::new("ChainDown".to_string(), (MAJOR) << 22 | (MINOR) << 12 | (PATCH), 1280.0, 1080.0, true);
   //graphics.set_icon("./resources/textures/entities/Sun_glasses.png".to_string());
   graphics.preload_font(String::from("Arial"),
                         String::from("./resources/fonts/TimesNewRoman.png"),
@@ -57,50 +54,20 @@ fn main() {
   graphics.preload_texture(String::from("Logo"), 
                            String::from("./resources/textures/Logo.png"));
   
-  let floor = generate_terrain::generate_terrain_from_image("floor".to_string(), "./resources/models/terrain/heightmap.png".to_string());
-  
-  //let floor = generate_terrain::generate_flat_terrain();
-  
   // background
   graphics.add_texture("background".to_string(), "./resources/textures/background.png".to_string());
   
-  graphics.add_terrain(floor);
-  graphics.add_model("house_one".to_string(), 
-                       "./resources/models/house_one.glb".to_string());
-  graphics.add_model("house_two".to_string(), 
-                       "./resources/models/house_two.glb".to_string());
-  graphics.add_model("house_double".to_string(), 
-                       "./resources/models/house_double.glb".to_string());
-  graphics.add_model("playerone".to_string(), 
-                       "./resources/models/playerone.glb".to_string());
-  graphics.add_model("hexagon".to_string(), 
-                       "./resources/models/hexagon.glb".to_string());
-  graphics.add_model("fridge".to_string(), 
-                       "./resources/models/fridge.glb".to_string());
-  graphics.add_model("model_floor".to_string(), 
-                       "./resources/models/floor.glb".to_string());
-  graphics.add_model("unit_floor".to_string(), 
-                       "./resources/models/unit_floor.glb".to_string());
-  graphics.add_model("hug_cube".to_string(), 
-                       "./resources/models/hug_cube.glb".to_string());
-  graphics.add_model("debug_cube".to_string(), 
-                       "./resources/models/debug_cube.glb".to_string());
-  graphics.add_model("flat_ramp".to_string(),
-                      "./resources/models/45DeFlat.glb".to_string());
-  graphics.add_model("flat_wall".to_string(),
-                      "./resources/models/45DeUpAndDown.glb".to_string());
-  graphics.add_model("static_collision_test".to_string(),
-                      "./resources/models/45DeToia.glb".to_string());
-  graphics.add_model("floor_wall".to_string(),
-                      "./resources/models/45DeDeux.glb".to_string());
+  graphics.add_texture("player".to_string(), "./resources/textures/player.png".to_string());
+  graphics.add_texture("circle".to_string(), "./resources/textures/circle.png".to_string());
+  graphics.add_texture("bullet".to_string(), "./resources/textures/bullet.png".to_string());
+  graphics.add_texture("buff".to_string(), "./resources/textures/buff.png".to_string());
   
-  graphics.add_model("unit_cube".to_string(),
-                      "./resources/models/unit_cube.glb".to_string());
-  graphics.add_model("unit_cube1".to_string(),
-                      "./resources/models/unit_cube1.glb".to_string());
+  graphics.add_texture("club_enemy".to_string(), "./resources/textures/club_enemy.png".to_string());
+  graphics.add_texture("diamond_enemy".to_string(), "./resources/textures/diamond_enemy.png".to_string());
+  graphics.add_texture("heart_enemy".to_string(), "./resources/textures/heart_enemy.png".to_string());
+  graphics.add_texture("spade_enemy".to_string(), "./resources/textures/spade_enemy.png".to_string());
   
   graphics.load_shaders();
-  graphics.create_model_instance_buffer("house_two".to_string());
   graphics.set_clear_colour(0.2, 0.2, 0.2, 1.0);
   
   let mut game: Box<dyn Scene> = Box::new(LoadScreen::new());
@@ -110,7 +77,6 @@ fn main() {
   let mut delta_time = 0.0;
   let mut last_time = time::Instant::now();
   
-  let mut done = false;
   let mut dimensions = Vector2::new(1.0, 1.0);
   
   let mut frame_counter = 0;
@@ -118,7 +84,6 @@ fn main() {
   let mut last_fps = 0.0;
   
   let mut total_delta_time = 0.0;
-  let mut count = 0;
   
   let mut is_first_loop = true;
   
@@ -182,6 +147,11 @@ fn main() {
           game.update(DELTA_STEP);
           total_delta_time -= DELTA_STEP;
         }
+        
+        draw_calls.push(DrawCall::draw_coloured(dimensions*0.5,
+                                                dimensions*1.1,
+                                                Vector4::new(0.062745098, 0.094117647, 0.125490196, 1.0),
+                                                0.0));
         
         game.draw(&mut draw_calls);
         benchmark(&mut draw_calls, dimensions);

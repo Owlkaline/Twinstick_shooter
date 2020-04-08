@@ -5,6 +5,8 @@ use crate::modules::scenes::SceneData;
 use crate::modules::scenes::{PlayScreen};
 use crate::cgmath::{Vector2, Vector4};
 
+use crate::modules::scenes::CharacterCreatorScreen;
+
 const LOGO_TIMER: f32 = 1.5;
 
 pub struct LoadScreen {
@@ -38,7 +40,7 @@ impl Scene for LoadScreen {
   
   fn future_scene(&mut self, _window_size: Vector2<f32>) -> Box<dyn Scene> {
     let dim = self.data().window_dim;
-    Box::new(PlayScreen::new(dim, self.data.model_data.clone()))
+    Box::new(CharacterCreatorScreen::new())
   }
   
   fn update(&mut self, delta_time: f32) {
@@ -61,22 +63,15 @@ impl Scene for LoadScreen {
     if self.first_loop {
       draw_calls.push(DrawCall::load_texture("background".to_string()));
       
-      draw_calls.push(DrawCall::load_model("hexagon".to_string()));
-      draw_calls.push(DrawCall::load_model("fridge".to_string()));
-      draw_calls.push(DrawCall::load_model("playerone".to_string()));
+      draw_calls.push(DrawCall::load_texture("player".to_string()));
+      draw_calls.push(DrawCall::load_texture("circle".to_string()));
+      draw_calls.push(DrawCall::load_texture("bullet".to_string()));
+      draw_calls.push(DrawCall::load_texture("buff".to_string()));
       
-      draw_calls.push(DrawCall::load_model("house_one".to_string()));
-      draw_calls.push(DrawCall::load_model("house_two".to_string()));
-      draw_calls.push(DrawCall::load_model("house_double".to_string()));
-      draw_calls.push(DrawCall::load_model("unit_floor".to_string()));
-      draw_calls.push(DrawCall::load_model("hug_cube".to_string()));
-      draw_calls.push(DrawCall::load_model("debug_cube".to_string()));
-      draw_calls.push(DrawCall::load_model("flat_ramp".to_string()));
-      draw_calls.push(DrawCall::load_model("flat_wall".to_string()));
-      draw_calls.push(DrawCall::load_model("unit_cube".to_string()));
-      draw_calls.push(DrawCall::load_model("unit_cube1".to_string()));
-      draw_calls.push(DrawCall::load_model("floor_wall".to_string()));
-      draw_calls.push(DrawCall::load_model("static_collision_test".to_string()));
+      draw_calls.push(DrawCall::load_texture("club_enemy".to_string()));
+      draw_calls.push(DrawCall::load_texture("diamond_enemy".to_string()));
+      draw_calls.push(DrawCall::load_texture("heart_enemy".to_string()));
+      draw_calls.push(DrawCall::load_texture("spade_enemy".to_string()));
     }
     
     draw_calls.push(

@@ -1,107 +1,122 @@
-use maat_graphics::math;
-use maat_graphics::math::Vector3Math;
 use maat_graphics::DrawCall;
-use maat_graphics::ModelData;
-use maat_graphics::camera::PerspectiveCamera;
-use maat_graphics::camera::PerspectiveCameraDirection;
+use maat_graphics::camera::OrthoCamera;
 
-use crate::modules::scenes::Scene;
+use crate::modules::scenes::{Scene, CharacterCreatorScreen};
 use crate::modules::scenes::SceneData;
-use crate::modules::scenes::{LoadScreen};
-use crate::cgmath::{Vector2, Vector3, Vector4};
+use crate::cgmath::{Vector2, Vector4, Zero};
 
-use crate::modules::objects::{Character, StaticObject, GenericObject, MovingPlatform};
+use rand::prelude::*;
+use rand::Rng;
+
+use crate::modules::objects::{GenericObject, Wall};
+use crate::modules::entity::{GenericEntity, Player, ClubEnemy, DiamondEnemy, HeartEnemy, SpadeEnemy};
+use crate::modules::controllers::{GenericEntityController, PlayerEntityController, RandomMoveEntityController,
+                                  GenericBulletController};
+use crate::modules::loot::Loot;
+
 use crate::modules::collisions;
-use rand::prelude::ThreadRng;
-use rand::thread_rng;
 
-const CAMERA_DEFAULT_X: f32 = 83.93359;
-const CAMERA_DEFAULT_Y: f32 = -128.62776;
-const CAMERA_DEFAULT_Z: f32 = 55.85842;
-const CAMERA_DEFAULT_PITCH: f32 = -62.27426;
-const CAMERA_DEFAULT_YAW: f32 = 210.10083;
-const CAMERA_DEFAULT_SPEED: f32 = 50.0;
+use crate::modules::camera_handling;
 
-const CAMERA_ZOOM_SPEED: f32 = 0.05; // percentage per second
+const ACTIVE_AREA_WIDTH: f32 = 4000.0;
+const ACTIVE_AREA_HEIGHT: f32 = 4000.0;
 
 pub struct PlayScreen {
   data: SceneData,
   rng: ThreadRng,
-  camera: PerspectiveCamera,
-  last_mouse_pos: Vector2<f32>,
-  dynamic_objects: Vec<Box<dyn GenericObject>>,
-  static_objects: Vec<Box<dyn GenericObject>>,
-  decorative_objects: Vec<Box<dyn GenericObject>>,
-  character_idx: usize,//Box<GenericObject>,
-  zoom: f32,
+  objects: Vec<Box<dyn GenericObject>>,
+  entity: Vec<(Option<Box<dyn GenericEntityController>>, Box<dyn GenericEntity>)>,
+  bullets: Vec<(Option<Box<dyn GenericBulletController>>, Box<dyn GenericEntity>)>,
+  loot: Vec<Loot>,
   debug: bool,
+  camera: OrthoCamera,
 }
 
 impl PlayScreen {
-  pub fn new(window_size: Vector2<f32>, model_data: Vec<ModelData>) -> PlayScreen {
+  pub fn new(window_size: Vector2<f32>) -> PlayScreen {
     let mut rng = thread_rng();
     
-    let mut camera = PerspectiveCamera::default_vk();
-    camera.set_position(Vector3::new(CAMERA_DEFAULT_X, 
-                                     CAMERA_DEFAULT_Y,
-                                     CAMERA_DEFAULT_Z));
-    camera.set_pitch(CAMERA_DEFAULT_PITCH);
-    camera.set_yaw(CAMERA_DEFAULT_YAW);
-    camera.set_move_speed(CAMERA_DEFAULT_SPEED);
-    camera.set_target(Vector3::new(0.0, 0.0, 0.0));
+    let vert_wall = Wall::new(Vector2::new(window_size.x*0.25, window_size.y*0.5), 
+                              Vector2::new(16.0, window_size.y*0.4), 
+                              Vector4::new(0.12, 0.236862745, 0.009411765, 1.0));
+    let horz_wall = Wall::new(Vector2::new(window_size.x*0.5, window_size.y*0.25), 
+                         Vector2::new(window_size.x*0.4, 16.0), 
+                         Vector4::new(0.12, 0.236862745, 0.009411765, 1.0));
+    let vert_wall_object: Box<dyn GenericObject> = Box::new(vert_wall);
+    let horz_wall_object: Box<dyn GenericObject> = Box::new(horz_wall);
     
-    let mut dynamic_objects: Vec<Box<dyn GenericObject>> = Vec::new();
-    let mut static_objects: Vec<Box<dyn GenericObject>> = Vec::new();
-    let mut decorative_objects: Vec<Box<dyn GenericObject>> = Vec::new();
+    let objects = vec!(vert_wall_object, horz_wall_object);
     
-    let mut char_scale = 0.5;//0.4;
-    let mut character = Character::new(Vector3::new(10.0, 20.0, 10.0));
-    character.set_scale(Vector3::new(char_scale, char_scale, char_scale));
+    let player = Player::new(window_size*0.5, Vector2::new(48.0, 48.0), "player".to_string());
+    let mut player: Box<dyn GenericEntity> = Box::new(player);
+    let player_control = PlayerEntityController::new();
     
-    dynamic_objects.push(Box::new(character));
-    /*
-    let house_scale = 1.0;
+    player.clear_collision_data();
+    player.add_circle_collider(Vector2::zero(), player.size().x.min(player.size().y)*0.5);
+    let player_entity: (Option<Box<dyn GenericEntityController>>, Box<dyn GenericEntity>) = 
+                          (Some(Box::new(player_control)), player);
     
-    for i in 0..10 {
-      static_objects.push(Box::new(StaticObject::new(Vector3::new(0.0, 98.03922+4.8*house_scale*0.5 +4.7*2.0*house_scale*i as f32, 0.0), "house_two".to_string()).scale(Vector3::new(house_scale, house_scale, house_scale))));
-    }*/
+    let mut entity = vec!(player_entity);
     
-    static_objects.push(Box::new(StaticObject::new(Vector3::new(0.0, 2.0, 0.0), "flat_ramp".to_string())));
-    static_objects.push(Box::new(StaticObject::new(Vector3::new(6.0, 6.0, 0.0), "flat_wall".to_string())));
-    static_objects.push(Box::new(StaticObject::new(Vector3::new(-10.0, 6.0, 0.0), "static_collision_test".to_string())));
-    static_objects.push(Box::new(StaticObject::new(Vector3::new(0.0, 6.0, 20.0), "floor_wall".to_string())));
+    for _ in 0..4 {
+      let x = rng.gen::<f32>() * window_size.x;
+      let y = rng.gen::<f32>() * window_size.y;
+      let mut enemy: Box<dyn GenericEntity> = Box::new(ClubEnemy::new(Vector2::new(x,y)));
+      enemy.set_max_speed(250.0);
+      enemy.clear_collision_data();
+      enemy.add_circle_collider(Vector2::zero(), enemy.size().x.min(enemy.size().y)*0.5);
+      let enemy_controller: Box<dyn GenericEntityController> = Box::new(RandomMoveEntityController::new());
+      let enemy_entity = (Some(enemy_controller), enemy);
+      entity.push(enemy_entity);
+    }
     
-    let mut floor = StaticObject::new(Vector3::new(0.0, 0.0, 0.0), "floor".to_string()).scale(Vector3::new(1.0, 1.0, 1.0));
+    for _ in 0..4 {
+      let x = rng.gen::<f32>() * window_size.x;
+      let y = rng.gen::<f32>() * window_size.y;
+      let mut enemy: Box<dyn GenericEntity> = Box::new(DiamondEnemy::new(Vector2::new(x,y)));
+      enemy.set_max_speed(250.0);
+      enemy.clear_collision_data();
+      enemy.add_circle_collider(Vector2::zero(), enemy.size().x.min(enemy.size().y)*0.5);
+      let enemy_controller: Box<dyn GenericEntityController> = Box::new(RandomMoveEntityController::new());
+      let enemy_entity = (Some(enemy_controller), enemy);
+      entity.push(enemy_entity);
+    }
     
-    decorative_objects.push(Box::new(floor));
+    for _ in 0..4 {
+      let x = rng.gen::<f32>() * window_size.x;
+      let y = rng.gen::<f32>() * window_size.y;
+      let mut enemy: Box<dyn GenericEntity> = Box::new(HeartEnemy::new(Vector2::new(x,y)));
+      enemy.set_max_speed(250.0);
+      enemy.clear_collision_data();
+      enemy.add_circle_collider(Vector2::zero(), enemy.size().x.min(enemy.size().y)*0.5);
+      let enemy_controller: Box<dyn GenericEntityController> = Box::new(RandomMoveEntityController::new());
+      let enemy_entity = (Some(enemy_controller), enemy);
+      entity.push(enemy_entity);
+    }
     
-    let mut ground_floor = StaticObject::new(Vector3::new(0.0, 88.0, 0.0), "unit_floor".to_string()).scale(Vector3::new(800.0, 10.0, 800.0));
-    let mut unit_floor = StaticObject::new(Vector3::new(50.0, 150.0, 50.0), "unit_floor".to_string()).scale(Vector3::new(10.0, 10.0, 10.0));
-    //let mut unit_floor1 = StaticObject::new(Vector3::new(55.0, 151.0, 50.0), "unit_floor".to_string()).scale(Vector3::new(10.0, 1.0, 10.0));
-    let mut unit_floor2 = StaticObject::new(Vector3::new(60.0, 151.0, 50.0), "unit_floor".to_string()).scale(Vector3::new(10.0, 10.0, 10.0));
-    let mut unit_floor3 = StaticObject::new(Vector3::new(65.0, 153.0, 50.0), "unit_floor".to_string()).scale(Vector3::new(10.0, 10.0, 10.0));
-    
-    let mut hug_cube = StaticObject::new(Vector3::new(30.0, 110.0, 30.0), "hug_cube".to_string()).scale(Vector3::new(2.0, 2.0, 2.0));
-    
-    static_objects.push(Box::new(ground_floor));
-    static_objects.push(Box::new(unit_floor));
-    //static_objects.push(Box::new(unit_floor1));
-    static_objects.push(Box::new(unit_floor2));
-    static_objects.push(Box::new(unit_floor3));
-    
-    static_objects.push(Box::new(hug_cube));
+    for _ in 0..4 {
+      let x = rng.gen::<f32>() * window_size.x;
+      let y = rng.gen::<f32>() * window_size.y;
+      let mut enemy: Box<dyn GenericEntity> = Box::new(SpadeEnemy::new(Vector2::new(x,y)));
+      enemy.set_max_speed(250.0);
+      enemy.clear_collision_data();
+      enemy.add_circle_collider(Vector2::zero(), enemy.size().x.min(enemy.size().y)*0.5);
+      let enemy_controller: Box<dyn GenericEntityController> = Box::new(RandomMoveEntityController::new());
+      let enemy_entity = (Some(enemy_controller), enemy);
+      entity.push(enemy_entity);
+    }
     
     PlayScreen {
-      data: SceneData::new(window_size, model_data),
+      data: SceneData::new(window_size, Vec::new()),
       rng,
-      camera,
-      last_mouse_pos: Vector2::new(-1.0, -1.0),
-      dynamic_objects,
-      static_objects,
-      decorative_objects,
-      character_idx: 0,//Box::new(character),
-      zoom: 5.0,
+      
+      objects,
+      entity,
+      bullets: Vec::new(),
+      loot: Vec::new(),
+      
       debug: false,
+      camera: OrthoCamera::new(window_size.x, window_size.y),
     }
   }
 }
@@ -115,114 +130,115 @@ impl Scene for PlayScreen {
     &mut self.data
   }
   
-  fn future_scene(&mut self, window_size: Vector2<f32>) -> Box<dyn Scene> {
+  fn future_scene(&mut self, _window_size: Vector2<f32>) -> Box<dyn Scene> {
     let dim = self.data().window_dim;
-    Box::new(PlayScreen::new(dim, self.data.model_data.clone()))
+    Box::new(CharacterCreatorScreen::new())
   }
   
   fn update(&mut self, delta_time: f32) {
     let dim = self.data().window_dim;
-    let (width, height) = (dim.x as f32, dim.y as f32);
+    let (_width, _height) = (dim.x as f32, dim.y as f32);
     
-    let mut mouse = self.data().mouse_pos;
-    let mut mouse_delta = self.last_mouse_pos - mouse;
+    let mouse = self.data().mouse_pos;
+    let left_mouse = self.data().left_mouse;
+    
+    if self.data().keys.escape_pressed() {
+      self.mut_data().next_scene = true;
+    }
     
     if self.data().keys.p_pressed() {
-      self.debug = !self.debug;
+      self.debug = true;
+    }
+    if self.data().keys.o_pressed() {
+      self.debug = false;
     }
     
-    { 
+    let keys = self.data().keys.clone();
+    
+    let mut offset = 0;
+    for i in 0..self.bullets.len() {
+      if i+offset >= self.bullets.len() {
+        break;
+      }
       
-      /*
-      let model_sizes = self.data().model_data.clone().into_iter().map(|md| (md.name(), md.size())).collect::<Vec<(String, Vector3<f32>)>>();
-     // let terrain_data = self.data().model_data.clone().into_iter().filter(|x| x.is_terrain_data()).map(|md| md.get_terrain_data()).collect::<Vec<(String, Vec<Vec<f32>>)>>();
-      let terrain_data = {
-        let mut terrain_data = Vec::new();
-        for i in 0..self.data().model_data.len() {
-       //   println!("Name: {}, Num Collision: {}", self.data().model_data[i].name(), self.data().model_data[i].num_collision_info());
-          if self.data().model_data[i].is_terrain_data() {
-            terrain_data.push(self.data().model_data[i].get_terrain_data());
-          }
-        }
-        //println!("Terrain length: {}", terrain_data.len());
-        terrain_data
-      };*/
-      let keys = self.data().keys.clone();
-      let model_data = self.data().model_data.clone();
-      for object in &mut self.dynamic_objects {
-        object.update(width, height, &keys, &model_data, delta_time);
-        object.physics_update(delta_time);
+      self.bullets[i+offset].1.update(delta_time);
+      let (some_controller, bullet) = &mut self.bullets[i+offset];
+      if let Some(controller) = some_controller {
+        controller.update(bullet, &mut self.rng, &keys, left_mouse, mouse, delta_time);
       }
-      for object in &mut self.static_objects {
-        object.update(width, height, &keys, &model_data, delta_time);
-        object.physics_update(delta_time);
-      }
-      for object in &mut self.decorative_objects {
-        object.update(width, height, &keys, &model_data, delta_time);
-        object.physics_update(delta_time);
+      
+      let b_pos = self.bullets[i+offset].1.position();
+      if b_pos.x > ACTIVE_AREA_WIDTH || b_pos.y > ACTIVE_AREA_HEIGHT || 
+         b_pos.x < -ACTIVE_AREA_WIDTH || b_pos.y < -ACTIVE_AREA_HEIGHT {
+        self.bullets.remove(i+offset);
+        offset += 1;
       }
     }
     
-    // Do Collisions
-    collisions::calculate_collisions(&mut self.dynamic_objects,
-                                     &mut self.static_objects);
-    
-    if self.data().scroll_delta < 0.0 {
-      self.zoom += CAMERA_ZOOM_SPEED*self.zoom*self.zoom *delta_time + 0.01;
-      if self.zoom > 120.0 {
-        self.zoom = 120.0;
+    for (some_controller, entity) in &mut self.entity {
+      entity.update(delta_time);
+      if let Some(controller) = some_controller {
+        controller.update(entity, &mut self.rng, &keys, left_mouse, mouse, delta_time);
       }
-    }
-    if self.data().scroll_delta > 0.0 {
-      self.zoom += -CAMERA_ZOOM_SPEED*self.zoom*self.zoom *delta_time - 0.01;
-      if self.zoom < 1.0 {
-        self.zoom = 1.0;
+      
+      if entity.style().is_player() {
+        camera_handling::handle_camera(&entity, dim, &mut self.camera);
       }
+      
+      let mut new_bullets = entity.update_weapon(delta_time);
+      
+      self.bullets.append(&mut new_bullets);
     }
     
-    let character_pos = self.dynamic_objects[self.character_idx].position();
-    let character_front_vector = self.dynamic_objects[self.character_idx].front_vector();
-    self.camera.set_target(character_pos);
-    
-    let mut old_unit_vector = self.camera.get_front();
-    let mut goal_unit_vector = character_front_vector;
-    old_unit_vector.y = 0.0;
-    goal_unit_vector.y = 0.0;
-    let old_unit_vector = math::normalise_vector3(old_unit_vector);
-    let goal_unit_vector = math::normalise_vector3(goal_unit_vector);
-    let lerped_unit_vector = math::vec3_lerp(old_unit_vector, goal_unit_vector, 0.005);
-    
-
-    let camera_lerp_pos = character_pos - lerped_unit_vector*self.zoom + Vector3::new(0.0, self.zoom, 0.0);//*self.zoom + Vector3::new(0.0, self.zoom, 0.0);//
-    self.camera.set_position(camera_lerp_pos);
-    self.camera.set_up(Vector3::new(0.0, -1.0, 0.0));
-    self.camera.set_front(math::normalise_vector3(character_pos-self.camera.get_position()));
-    
-    if self.data().left_mouse_dragged {
-      if self.last_mouse_pos != Vector2::new(-1.0, -1.0) {
-        self.camera.process_mouse_movement(mouse_delta.x, mouse_delta.y*-1.0);
-      }
-    }
-    
-    self.last_mouse_pos = mouse;
+    let mut new_loot = collisions::process_collisions(&mut self.objects, &mut self.entity, 
+                                                      &mut self.bullets, &mut self.loot,
+                                                      &mut self.rng, 
+                                                      delta_time);
+    self.loot.append(&mut new_loot);
   }
   
   fn draw(&self, draw_calls: &mut Vec<DrawCall>) {
     let dim = self.data().window_dim;
-    let (width, height) = (dim.x as f32, dim.y as f32);
+    let (_width, _height) = (dim.x as f32, dim.y as f32);
     
-    draw_calls.push(DrawCall::set_camera(self.camera.clone()));
+    draw_calls.push(DrawCall::replace_ortho_camera(self.camera.clone()));
     
-    for object in &self.dynamic_objects {
-      object.draw(draw_calls, self.debug);
-    }
-    for object in &self.static_objects {
-      object.draw(draw_calls, self.debug);
-    }
-    for object in &self.decorative_objects {
-      object.draw(draw_calls, self.debug);
+    for loot in &self.loot {
+      loot.draw(draw_calls);
     }
     
+    for (_, bullet) in &self.bullets {
+      bullet.draw(draw_calls);
+    }
     
+    let mut player_idx = None;
+    for i in 0..self.entity.len() {
+      self.entity[i].1.draw(draw_calls);
+      if self.entity[i].1.style().is_player() {
+        player_idx = Some(i);
+      }
+    }
+    
+    for object in &self.objects {
+      object.draw(draw_calls);
+    }
+    
+    if self.debug {
+      for (_, bullet) in &self.bullets {
+        bullet.draw_collisions(draw_calls);
+      }
+      
+      for (_, entity) in &self.entity {
+        entity.draw_collisions(draw_calls);
+      }
+      
+      for object in &self.objects {
+        object.draw_collisions(draw_calls);
+      }
+    }
+    
+    if let Some(idx) = player_idx {
+      self.entity[idx].1.draw_ui(draw_calls);
+    }
   }
 }

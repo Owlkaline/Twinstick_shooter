@@ -10,13 +10,15 @@ use maat_graphics::winit;
 use maat_graphics::winit::event::MouseScrollDelta::LineDelta;
 use maat_graphics::winit::event::MouseScrollDelta::PixelDelta;
 
-use maat_graphics::cgmath::{Vector2, Vector3};
+use maat_graphics::cgmath::Vector2;
 
 pub use self::load_screen::LoadScreen;
 pub use self::play_screen::PlayScreen;
+pub use self::character_creator_screen::CharacterCreatorScreen;
 
 mod load_screen;
 mod play_screen;
+mod character_creator_screen;
 
 pub struct SceneData {
   pub should_close: bool,
@@ -175,7 +177,7 @@ pub trait Scene {
     self.mut_data().model_data.push(model_data);
   }
   
-  fn handle_event(&mut self, mut event: winit::event::Event<()>) {
+  fn handle_event(&mut self, event: winit::event::Event<()>) {
     match event {
       winit::event::Event::WindowEvent { event: w_event, .. } => {
         match w_event {
