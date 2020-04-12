@@ -1,66 +1,31 @@
 use maat_graphics::cgmath::{Vector2, Zero};
 use maat_graphics::math;
 
+use crate::modules::collisions;
 use crate::modules::collisions::CollisionType;
 use crate::modules::loot::Loot;
 use crate::modules::entity::GenericEntity;
-use crate::modules::objects::GenericObject;
+use crate::modules::objects::{GenericObject, PortalPad};
+
+pub fn player_into_portal(portal: &mut PortalPad, entity: &mut Box<GenericEntity>, delta_time: f32) {
+  let portal_collision = portal.collision_data();
+  let entity_collision = entity.collision_data();
+  
+  if collisions::check_if_collision(portal.position(), entity.position(), &portal_collision, &entity_collision) {
+    portal.activate();
+  }
+}
 
 pub fn player_into_loot(loot: &mut Loot, entity: &mut Box<dyn GenericEntity>, delta_time: f32) -> bool {
   let loot_collision = loot.collision_data();
   let entity_collision = entity.collision_data();
   
   let mut player_collected_loot = false;
-  for i in 0..entity_collision.len() {
-    for j in 0..loot_collision.len() {
-      match entity_collision[i] {
-        CollisionType::Square(e_offset, e_size) => {
-          let e_pos = entity.position() + e_offset;
-          
-          match loot_collision[j] {
-            CollisionType::Square(l_offset, l_size) => {
-              let l_pos = loot.position() + l_offset;
-              if math::intersect_square(e_pos, e_size, l_pos, l_size) {
-                player_collected_loot = true;
-                break;
-              }
-            },
-            CollisionType::Circle(l_offset, l_radius) => {
-              let l_pos = loot.position() + l_offset;
-              if math::circle_intersect_square(l_pos, l_radius, e_pos, e_size) {
-                player_collected_loot = true;
-                break;
-              }
-            },
-          }
-        },
-        CollisionType::Circle(e_offset, e_radius) => {
-          let e_pos = entity.position() + e_offset;
-          
-          match loot_collision[j] {
-            CollisionType::Square(l_offset, l_size) => {
-              let l_pos = loot.position() + l_offset;
-              if math::circle_intersect_square(e_pos, e_radius, l_pos, l_size) {
-                player_collected_loot = true;
-                break;
-              }
-            },
-            CollisionType::Circle(l_offset, l_radius) => {
-              let l_pos = loot.position() + l_offset;
-              if math::intersect_circle(e_pos, e_radius, l_pos, l_radius) {
-                player_collected_loot = true;
-                break;
-              }
-            },
-          }
-        }
-      }
-    }
-    if player_collected_loot {
-      let mut buff = loot.get_buff();
-      buff.apply_to_entity(entity, delta_time);
-      break;
-    }
+  
+  if collisions::check_if_collision(loot.position(), entity.position(), &loot_collision, &entity_collision) {
+    let mut buff = loot.get_buff();
+    buff.apply_to_entity(entity, delta_time);
+    player_collected_loot = true;
   }
   
   player_collected_loot

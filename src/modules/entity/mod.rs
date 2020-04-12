@@ -14,13 +14,14 @@ mod spade_enemy;
 
 use maat_graphics::math;
 use maat_graphics::DrawCall;
-use maat_graphics::cgmath::{Vector2, Vector4, InnerSpace, Zero};
+use maat_graphics::camera::OrthoCamera;
+use maat_graphics::cgmath::{Vector2, Vector3, Vector4, InnerSpace, Zero};
 
 use rand::prelude::ThreadRng;
 
 use crate::modules::objects::GenericObject;
 use crate::modules::loot::LootTable;
-use crate::modules::controllers::GenericBulletController;
+use crate::modules::controllers::{GenericBulletController, GenericEntityController};
 use crate::modules::weapon::Weapon;
 
 #[derive(PartialEq, Clone, Copy)]
@@ -92,6 +93,7 @@ impl EntityStyle {
 
 pub struct EntityData {
   hit_points: u32,
+  max_hit_points: u32,
   
   max_speed: f32,
   forces_applied: Vector2<f32>,
@@ -109,6 +111,7 @@ impl EntityData {
   pub fn new() -> EntityData {
     EntityData {
       hit_points: 1,
+      max_hit_points: 1,
       
       max_speed: 10.0,
       forces_applied: Vector2::zero(),
@@ -192,6 +195,10 @@ pub trait GenericEntity: GenericObject + LootTable {
     self.e_data().hit_points
   }
   
+  fn max_hit_points(&self) -> u32 {
+    self.e_data().max_hit_points
+  }
+  
   fn max_speed(&self) -> f32 {
     self.e_data().max_speed
   }
@@ -220,8 +227,20 @@ pub trait GenericEntity: GenericObject + LootTable {
     &mut self.e_mut_data().weapon
   }
   
+  fn set_damage(&mut self, damage: u32) {
+    self.e_mut_data().damage = damage;
+  }
+  
   fn take_damage(&mut self, hit_damage: u32) {
     self.e_mut_data().hit_points -= hit_damage.min(self.e_data().hit_points);
+  }
+  
+  fn set_hit_points(&mut self, new_hit_points: u32) {
+    self.e_mut_data().hit_points = new_hit_points.min(self.max_hit_points());
+  }
+  
+  fn set_max_hit_points(&mut self, new_max: u32) {
+    self.e_mut_data().max_hit_points = new_max;
   }
   
   fn set_max_speed(&mut self, speed: f32) {
@@ -244,7 +263,8 @@ pub trait GenericEntity: GenericObject + LootTable {
     } else {
       false
     };
-    let mut bullets = self.e_mut_data().weapon.fire(rng, bullet_spawn, rotation, friendly, delta_time);
+    let velocity = self.velocity();
+    let mut bullets = self.e_mut_data().weapon.fire(rng, bullet_spawn, rotation, velocity, friendly, delta_time);
     self.e_mut_data().bullets.append(&mut bullets);
   }
   
@@ -276,7 +296,7 @@ pub trait GenericEntity: GenericObject + LootTable {
     self.e_mut_data().forces_applied = Vector2::zero();
   }
   
-  fn draw_ui(&self, draw_calls: &mut Vec<DrawCall>) {
+  fn draw_ui(&self, palyer_idx: usize, entities: &Vec<(Option<Box<GenericEntityController>>, Box<GenericEntity>)>, camera: &OrthoCamera, window_size: Vector2<f32>, draw_calls: &mut Vec<DrawCall>) {
     let entity_pos = self.position();
     let entity_size = self.size();
     let entity_rot = self.rotation();
@@ -327,6 +347,56 @@ pub trait GenericEntity: GenericObject + LootTable {
                                             else { colour }, 
                                             entity_rot));
     // hit points
+    
+    // cycling wweapon stack
+    let chains = self.weapon().weapon_chain();
+    let current_chain = self.weapon().current_chain();
+    let mut position = camera.get_position()+Vector2::new(window_size.x*0.25, 96.0);
+    for i in 0..chains.len() {
+      let mut idx = (i as u32+current_chain) as u32 % chains.len() as u32;
+      for buff in &chains[idx as usize] {
+        let (texture, idx, row) = buff.sprite_details();
+        let num_rows = row as i32;
+        let sprite_x = (idx % num_rows as u32) as i32;
+        let sprite_y = (idx as f32 / num_rows as f32).floor() as i32;
+        
+        draw_calls.push(DrawCall::add_instanced_sprite_sheet(position,
+                                                             Vector2::new(48.0, 48.0),
+                                                             0.0,
+                                                             texture,
+                                                             Vector3::new(sprite_x, sprite_y, num_rows)));  
+        position.x += 48.0 + 6.0;
+      }
+      position.x = camera.get_position().x+window_size.x*0.25;
+      position.y -= 48.0;
+    }
+    
+    let mut closest_idx = 0;
+    let mut dist = 10000000.0;
+    for i in 0..entities.len() {
+      if i == palyer_idx {
+        continue;
+      }
+      
+      let new_dist = (self.position()-entities[i].1.position()).magnitude();
+      if new_dist < dist {
+        dist = new_dist;
+        closest_idx = i;
+      }
+    }
+    
+    let dir = -math::normalise_vector2(self.position()-entities[closest_idx].1.position());
+    let draw_radius = window_size.y*0.5*0.8;
+    
+    if dist > draw_radius {
+      let pos = self.position()+dir*draw_radius;
+      let angle = math::to_degrees(dir.y.atan2(dir.x))-90.0;
+      draw_calls.push(DrawCall::add_instanced_sprite_sheet(pos,
+                                                           Vector2::new(32.0, 32.0),
+                                                           angle,
+                                                           "enemy_indicator".to_string(),
+                                                           Vector3::new(0,0,1)));
+    }
   }
 }
 

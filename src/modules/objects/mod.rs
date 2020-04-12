@@ -1,9 +1,11 @@
 pub use self::wall::Wall;
+pub use self::portal_pad::PortalPad;
 
 mod wall;
+mod portal_pad;
 
 use maat_graphics::DrawCall;
-use maat_graphics::cgmath::{Vector2, Vector4, Zero};
+use maat_graphics::cgmath::{Vector2, Vector3, Vector4, Zero};
 
 use crate::modules::collisions::CollisionType;
 
@@ -15,6 +17,8 @@ pub struct ObjectData {
   
   texture: String,
   colour: Option<Vector4<f32>>,
+  sprite_idx: u32,
+  sprite_rows: u32,
   
   collision_data: Vec<CollisionType>,
 }
@@ -29,6 +33,8 @@ impl ObjectData {
       
       texture,
       colour: None,
+      sprite_idx: 0,
+      sprite_rows: 1,
       collision_data: vec!(CollisionType::new_square(Vector2::zero(), size)),
     }
   }
@@ -42,6 +48,23 @@ impl ObjectData {
       
       texture: "".to_string(),
       colour: Some(colour),
+      sprite_idx: 0,
+      sprite_rows: 1,
+      collision_data: vec!(CollisionType::new_square(Vector2::zero(), size)),
+    }
+  }
+  
+  pub fn new_spritesheet(pos: Vector2<f32>, size: Vector2<f32>, texture: String, sprite_idx: u32, num_rows: u32) -> ObjectData {
+    ObjectData {
+      pos,
+      size,
+      vel: Vector2::zero(),
+      rotation: 0.0,
+      
+      texture,
+      colour: None,
+      sprite_idx,
+      sprite_rows: num_rows,
       collision_data: vec!(CollisionType::new_square(Vector2::zero(), size)),
     }
   }
@@ -124,15 +147,30 @@ pub trait GenericObject {
   
   fn draw(&self, draw_calls: &mut Vec<DrawCall>) {
     if let Some(colour) = self.o_data().colour {
-      draw_calls.push(DrawCall::draw_coloured(self.position(),
+      draw_calls.push(DrawCall::add_instanced_coloured("".to_string(),
+                                                       self.position(),
+                                                       self.size(),
+                                                       self.rotation(),
+                                                       colour));
+     /* draw_calls.push(DrawCall::draw_coloured(self.position(),
                                               self.size(),
                                               colour,
-                                              self.rotation()));
+                                              self.rotation()));*/
     } else {
-      draw_calls.push(DrawCall::draw_textured(self.position(),
+      
+      let num_rows = self.o_data().sprite_rows as i32;
+      let sprite_x = (self.o_data().sprite_idx % num_rows as u32) as i32;
+      let sprite_y = (self.o_data().sprite_idx as f32 / num_rows as f32).floor() as i32;
+      
+      draw_calls.push(DrawCall::add_instanced_sprite_sheet(self.position(),
+                                                           self.size(),
+                                                           self.rotation(),
+                                                           self.texture(),
+                                                           Vector3::new(sprite_x, sprite_y, num_rows)));
+     /* draw_calls.push(DrawCall::draw_textured(self.position(),
                                               self.size(),
                                               self.rotation(),
-                                              self.texture()));
+                                              self.texture()));*/
     }
   }
 }

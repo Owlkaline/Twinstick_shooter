@@ -44,11 +44,32 @@ impl Scene for CharacterCreatorScreen {
   fn draw(&self, draw_calls: &mut Vec<DrawCall>) {
     let dim = self.data().window_dim;
     let (width, height) = (dim.x as f32, dim.y as f32);
-    
+    draw_calls.push(DrawCall::reset_ortho_camera());
     draw_calls.push(DrawCall::draw_text_basic(Vector2::new(10.0, height-64.0),
                                               Vector2::new(128.0, 128.0),
                                               Vector4::new(1.0, 1.0, 1.0, 1.0),
                                               "Character Creator".to_string(),
+                                              "Arial".to_string()));
+   draw_calls.push(DrawCall::draw_text_basic_centered(Vector2::new(width*0.5, height*0.7),
+                                              Vector2::new(128.0, 128.0),
+                                              Vector4::new(1.0, 1.0, 1.0, 1.0),
+                                              "Press R for Reload and Unjam, Left mouse for shoot".to_string(),
+                                              "Arial".to_string()));
+   draw_calls.push(DrawCall::draw_text_basic_centered(Vector2::new(width*0.5, height*0.6),
+                                              Vector2::new(128.0, 128.0),
+                                              Vector4::new(1.0, 1.0, 1.0, 1.0),
+                                              "Space for dash".to_string(),
+                                              "Arial".to_string()));
+   
+   draw_calls.push(DrawCall::draw_text_basic_centered(Vector2::new(width*0.5, height*0.4),
+                                              Vector2::new(128.0, 128.0),
+                                              Vector4::new(1.0, 1.0, 1.0, 1.0),
+                                              "Press m to start game".to_string(),
+                                              "Arial".to_string()));
+    draw_calls.push(DrawCall::draw_text_basic_centered(Vector2::new(width*0.5, height*0.5),
+                                              Vector2::new(128.0, 128.0),
+                                              Vector4::new(1.0, 1.0, 1.0, 1.0),
+                                              "Press escape to return to this screen".to_string(),
                                               "Arial".to_string()));
   }
 }

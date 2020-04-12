@@ -5,7 +5,7 @@ use crate::modules::objects::{GenericObject, ObjectData};
 use crate::modules::entity::{GenericEntity, EntityData};
 use crate::modules::loot::{Loot, LootTable, LootTableData};
 
-const DEFAULT_BASIC_BULLET_SPEED: f32 = 1200.0;
+const DEFAULT_BASIC_BULLET_SPEED: f32 = 1200.0*2.0;
 
 use rand::prelude::ThreadRng;
 use rand::Rng;
@@ -56,8 +56,8 @@ impl LootTable for BasicBullet {
     &mut self.l_data
   }
   
-  fn drop_loot(&self, rng: &mut ThreadRng) -> Option<Loot> {
-    None
+  fn drop_loot(&self, rng: &mut ThreadRng) -> Vec<Loot> {
+    Vec::new()
   }
 }
 

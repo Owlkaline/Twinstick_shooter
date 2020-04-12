@@ -42,7 +42,7 @@ impl LootTable for SpadeEnemy {
     &mut self.l_data
   }
   
-  fn drop_loot(&self, rng: &mut ThreadRng) -> Option<Loot> {
+  fn drop_loot(&self, rng: &mut ThreadRng) -> Vec<Loot> {
     self.spade_enemy_loot(self.position(), rng)
   }
 }

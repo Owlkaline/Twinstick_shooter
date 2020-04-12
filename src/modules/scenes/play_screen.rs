@@ -8,11 +8,14 @@ use crate::cgmath::{Vector2, Vector4, Zero};
 use rand::prelude::*;
 use rand::Rng;
 
-use crate::modules::objects::{GenericObject, Wall};
+use crate::modules::world_generation::Level;
+use crate::modules::objects::{GenericObject, Wall, PortalPad};
 use crate::modules::entity::{GenericEntity, Player, ClubEnemy, DiamondEnemy, HeartEnemy, SpadeEnemy};
 use crate::modules::controllers::{GenericEntityController, PlayerEntityController, RandomMoveEntityController,
                                   GenericBulletController};
 use crate::modules::loot::Loot;
+
+use crate::modules::particles::ParticleGenerator;
 
 use crate::modules::collisions;
 
@@ -21,103 +24,83 @@ use crate::modules::camera_handling;
 const ACTIVE_AREA_WIDTH: f32 = 4000.0;
 const ACTIVE_AREA_HEIGHT: f32 = 4000.0;
 
+const LEVEL_WIDTH: f32 = 1280.0*2.0;//ACTIVE_AREA_WIDTH*2.0;
+const LEVEL_HEIGHT: f32 = 720.0*2.0;//ACTIVE_AREA_HEIGHT*2.0;
+
 pub struct PlayScreen {
   data: SceneData,
   rng: ThreadRng,
+  level: Level,
   objects: Vec<Box<dyn GenericObject>>,
   entity: Vec<(Option<Box<dyn GenericEntityController>>, Box<dyn GenericEntity>)>,
   bullets: Vec<(Option<Box<dyn GenericBulletController>>, Box<dyn GenericEntity>)>,
   loot: Vec<Loot>,
+  next_level_portal: Option<PortalPad>,
   debug: bool,
   camera: OrthoCamera,
+  particles: ParticleGenerator,
 }
 
 impl PlayScreen {
   pub fn new(window_size: Vector2<f32>) -> PlayScreen {
     let mut rng = thread_rng();
     
-    let vert_wall = Wall::new(Vector2::new(window_size.x*0.25, window_size.y*0.5), 
-                              Vector2::new(16.0, window_size.y*0.4), 
-                              Vector4::new(0.12, 0.236862745, 0.009411765, 1.0));
-    let horz_wall = Wall::new(Vector2::new(window_size.x*0.5, window_size.y*0.25), 
-                         Vector2::new(window_size.x*0.4, 16.0), 
-                         Vector4::new(0.12, 0.236862745, 0.009411765, 1.0));
-    let vert_wall_object: Box<dyn GenericObject> = Box::new(vert_wall);
-    let horz_wall_object: Box<dyn GenericObject> = Box::new(horz_wall);
-    
-    let objects = vec!(vert_wall_object, horz_wall_object);
-    
-    let player = Player::new(window_size*0.5, Vector2::new(48.0, 48.0), "player".to_string());
-    let mut player: Box<dyn GenericEntity> = Box::new(player);
-    let player_control = PlayerEntityController::new();
-    
-    player.clear_collision_data();
-    player.add_circle_collider(Vector2::zero(), player.size().x.min(player.size().y)*0.5);
-    let player_entity: (Option<Box<dyn GenericEntityController>>, Box<dyn GenericEntity>) = 
-                          (Some(Box::new(player_control)), player);
-    
-    let mut entity = vec!(player_entity);
-    
-    for _ in 0..4 {
-      let x = rng.gen::<f32>() * window_size.x;
-      let y = rng.gen::<f32>() * window_size.y;
-      let mut enemy: Box<dyn GenericEntity> = Box::new(ClubEnemy::new(Vector2::new(x,y)));
-      enemy.set_max_speed(250.0);
-      enemy.clear_collision_data();
-      enemy.add_circle_collider(Vector2::zero(), enemy.size().x.min(enemy.size().y)*0.5);
-      let enemy_controller: Box<dyn GenericEntityController> = Box::new(RandomMoveEntityController::new());
-      let enemy_entity = (Some(enemy_controller), enemy);
-      entity.push(enemy_entity);
-    }
-    
-    for _ in 0..4 {
-      let x = rng.gen::<f32>() * window_size.x;
-      let y = rng.gen::<f32>() * window_size.y;
-      let mut enemy: Box<dyn GenericEntity> = Box::new(DiamondEnemy::new(Vector2::new(x,y)));
-      enemy.set_max_speed(250.0);
-      enemy.clear_collision_data();
-      enemy.add_circle_collider(Vector2::zero(), enemy.size().x.min(enemy.size().y)*0.5);
-      let enemy_controller: Box<dyn GenericEntityController> = Box::new(RandomMoveEntityController::new());
-      let enemy_entity = (Some(enemy_controller), enemy);
-      entity.push(enemy_entity);
-    }
-    
-    for _ in 0..4 {
-      let x = rng.gen::<f32>() * window_size.x;
-      let y = rng.gen::<f32>() * window_size.y;
-      let mut enemy: Box<dyn GenericEntity> = Box::new(HeartEnemy::new(Vector2::new(x,y)));
-      enemy.set_max_speed(250.0);
-      enemy.clear_collision_data();
-      enemy.add_circle_collider(Vector2::zero(), enemy.size().x.min(enemy.size().y)*0.5);
-      let enemy_controller: Box<dyn GenericEntityController> = Box::new(RandomMoveEntityController::new());
-      let enemy_entity = (Some(enemy_controller), enemy);
-      entity.push(enemy_entity);
-    }
-    
-    for _ in 0..4 {
-      let x = rng.gen::<f32>() * window_size.x;
-      let y = rng.gen::<f32>() * window_size.y;
-      let mut enemy: Box<dyn GenericEntity> = Box::new(SpadeEnemy::new(Vector2::new(x,y)));
-      enemy.set_max_speed(250.0);
-      enemy.clear_collision_data();
-      enemy.add_circle_collider(Vector2::zero(), enemy.size().x.min(enemy.size().y)*0.5);
-      let enemy_controller: Box<dyn GenericEntityController> = Box::new(RandomMoveEntityController::new());
-      let enemy_entity = (Some(enemy_controller), enemy);
-      entity.push(enemy_entity);
-    }
-    
-    PlayScreen {
+    let mut screen = PlayScreen {
       data: SceneData::new(window_size, Vec::new()),
       rng,
       
-      objects,
-      entity,
+      level: Level::empty(),
+      objects: Vec::new(),
+      entity: Vec::new(),
       bullets: Vec::new(),
       loot: Vec::new(),
+      next_level_portal: None,
       
       debug: false,
       camera: OrthoCamera::new(window_size.x, window_size.y),
-    }
+      
+      particles: ParticleGenerator::new(Vector2::zero(), 0.1, 5.0, Vector2::new(300.0, 300.0)),
+    };
+    
+    screen.next_level();
+    
+    screen
+  }
+  
+  pub fn next_level(&mut self) {
+    let level = Level::new(Vector2::new(3,3), Vector2::new(3000.0, 3000.0), &mut self.rng);
+    
+    let mut player_entity = {
+      
+      let mut player = level.spawn_player();
+      
+      for entity in self.entity.drain(..) {
+        if entity.1.style().is_player() {
+          player = entity;
+        }
+      }
+      
+      player
+    };
+    
+    self.entity.clear();
+    self.objects.clear();
+    self.bullets.clear();
+    self.loot.clear();
+    self.next_level_portal = None;
+    
+    let max_ammo = player_entity.1.weapon().max_ammo();
+    player_entity.1.mut_weapon().set_total_ammo(max_ammo);
+    player_entity.1.set_position(Vector2::new(0.0, 0.0));
+    self.entity.push(player_entity);
+    
+    self.objects.append(&mut level.wall_boundries());
+    
+    self.entity.append(&mut level.spawn_enemies(&mut self.rng));
+    self.objects.append(&mut level.spawn_enivroment(&mut self.rng));
+    self.next_level_portal = Some(level.spawn_next_level_portal(&mut self.rng));
+    
+    self.level = level;
   }
 }
 
@@ -166,23 +149,31 @@ impl Scene for PlayScreen {
       if let Some(controller) = some_controller {
         controller.update(bullet, &mut self.rng, &keys, left_mouse, mouse, delta_time);
       }
-      
+      /*
       let b_pos = self.bullets[i+offset].1.position();
       if b_pos.x > ACTIVE_AREA_WIDTH || b_pos.y > ACTIVE_AREA_HEIGHT || 
          b_pos.x < -ACTIVE_AREA_WIDTH || b_pos.y < -ACTIVE_AREA_HEIGHT {
         self.bullets.remove(i+offset);
         offset += 1;
-      }
+      }*/
     }
     
     for (some_controller, entity) in &mut self.entity {
       entity.update(delta_time);
       if let Some(controller) = some_controller {
-        controller.update(entity, &mut self.rng, &keys, left_mouse, mouse, delta_time);
+        controller.update(entity, &mut self.rng, &keys, &self.camera, left_mouse, mouse, delta_time);
       }
       
       if entity.style().is_player() {
-        camera_handling::handle_camera(&entity, dim, &mut self.camera);
+        let boundry_square = self.level.boundry_square();
+        camera_handling::handle_camera(&entity, dim, boundry_square, &mut self.camera);
+      }
+      
+      if let Some(portal) = &mut self.next_level_portal {
+        if portal.is_activated() {
+          self.next_level();
+          return;
+        }
       }
       
       let mut new_bullets = entity.update_weapon(delta_time);
@@ -190,8 +181,11 @@ impl Scene for PlayScreen {
       self.bullets.append(&mut new_bullets);
     }
     
+    self.particles.update(delta_time);
+    
     let mut new_loot = collisions::process_collisions(&mut self.objects, &mut self.entity, 
-                                                      &mut self.bullets, &mut self.loot,
+                                                      &mut self.bullets, &mut self.next_level_portal,
+                                                      &mut self.loot,
                                                       &mut self.rng, 
                                                       delta_time);
     self.loot.append(&mut new_loot);
@@ -202,6 +196,14 @@ impl Scene for PlayScreen {
     let (_width, _height) = (dim.x as f32, dim.y as f32);
     
     draw_calls.push(DrawCall::replace_ortho_camera(self.camera.clone()));
+    
+   // draw_calls.push(DrawCall::set_texture_scale(0.125));
+    
+    self.level.draw(draw_calls);
+    
+    if let Some(portal) = &self.next_level_portal {
+      portal.draw(draw_calls);
+    }
     
     for loot in &self.loot {
       loot.draw(draw_calls);
@@ -223,6 +225,24 @@ impl Scene for PlayScreen {
       object.draw(draw_calls);
     }
     
+    self.particles.draw(draw_calls);
+    
+    draw_calls.push(DrawCall::draw_instanced("".to_string()));
+    draw_calls.push(DrawCall::draw_instanced("portal".to_string()));
+    draw_calls.push(DrawCall::draw_instanced("player".to_string()));
+    draw_calls.push(DrawCall::draw_instanced("circle".to_string()));
+    draw_calls.push(DrawCall::draw_instanced("fire_bullet".to_string()));
+    draw_calls.push(DrawCall::draw_instanced("ice_bullet".to_string()));
+    draw_calls.push(DrawCall::draw_instanced("electric_bullet".to_string()));
+    draw_calls.push(DrawCall::draw_instanced("bullet".to_string()));
+    draw_calls.push(DrawCall::draw_instanced("buff_spritesheet".to_string()));
+    draw_calls.push(DrawCall::draw_instanced("club_enemy".to_string()));
+    draw_calls.push(DrawCall::draw_instanced("diamond_enemy".to_string()));
+    draw_calls.push(DrawCall::draw_instanced("heart_enemy".to_string()));
+    draw_calls.push(DrawCall::draw_instanced("spade_enemy".to_string()));
+    draw_calls.push(DrawCall::draw_instanced("fire_particle".to_string()));
+    draw_calls.push(DrawCall::draw_instanced("enemy_indicator".to_string()));
+    
     if self.debug {
       for (_, bullet) in &self.bullets {
         bullet.draw_collisions(draw_calls);
@@ -238,7 +258,16 @@ impl Scene for PlayScreen {
     }
     
     if let Some(idx) = player_idx {
-      self.entity[idx].1.draw_ui(draw_calls);
+      self.entity[idx].1.draw_ui(idx, &self.entity, &self.camera, dim, draw_calls);
     }
+    
+    draw_calls.push(DrawCall::draw_instanced("".to_string()));
+    
+    let mouse_pos = self.data().mouse_pos;
+    let cursor_pos = mouse_pos + self.camera.get_position();
+    draw_calls.push(DrawCall::draw_textured(cursor_pos,
+                                            Vector2::new(32.0, 32.0),
+                                            0.0,
+                                            "cross_hair".to_string()));
   }
 }

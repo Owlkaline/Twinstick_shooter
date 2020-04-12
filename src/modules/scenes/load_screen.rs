@@ -66,12 +66,22 @@ impl Scene for LoadScreen {
       draw_calls.push(DrawCall::load_texture("player".to_string()));
       draw_calls.push(DrawCall::load_texture("circle".to_string()));
       draw_calls.push(DrawCall::load_texture("bullet".to_string()));
-      draw_calls.push(DrawCall::load_texture("buff".to_string()));
+      draw_calls.push(DrawCall::load_texture("buff_spritesheet".to_string()));
       
       draw_calls.push(DrawCall::load_texture("club_enemy".to_string()));
       draw_calls.push(DrawCall::load_texture("diamond_enemy".to_string()));
       draw_calls.push(DrawCall::load_texture("heart_enemy".to_string()));
       draw_calls.push(DrawCall::load_texture("spade_enemy".to_string()));
+      
+      draw_calls.push(DrawCall::load_texture("cross_hair".to_string()));
+      draw_calls.push(DrawCall::load_texture("fire_particle".to_string()));
+      
+      draw_calls.push(DrawCall::load_texture("portal".to_string()));
+      
+      draw_calls.push(DrawCall::load_texture("electric_bullet".to_string()));
+      draw_calls.push(DrawCall::load_texture("ice_bullet".to_string()));
+      draw_calls.push(DrawCall::load_texture("fire_bullet".to_string()));
+      draw_calls.push(DrawCall::load_texture("enemy_indicator".to_string()));
     }
     
     draw_calls.push(

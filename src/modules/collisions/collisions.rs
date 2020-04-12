@@ -1,7 +1,7 @@
 use maat_graphics::math;
 use maat_graphics::cgmath::Vector2;
 
-use crate::modules::objects::GenericObject;
+use crate::modules::objects::{GenericObject, PortalPad};
 use crate::modules::entity::{GenericEntity, EntityStyle};
 use crate::modules::controllers::{GenericEntityController, GenericBulletController};
 use crate::modules::loot::{Loot, LootTable};
@@ -28,97 +28,95 @@ impl CollisionType {
   }
 }
 
+pub fn check_if_collision(object1_pos: Vector2<f32>, object2_pos: Vector2<f32>,
+                      object1: &Vec<CollisionType>, object2: &Vec<CollisionType>) -> bool {
+  let mut collided = false;
+  
+  for i in 0..object1.len() {
+    for j in 0..object2.len() {
+      match (&object1[i], &object2[j]) {
+        (&CollisionType::Square(o1_offset, o1_size), &CollisionType::Square(o2_offset, o2_size)) => {
+          let o1_pos = object1_pos + o1_offset;
+          let o2_pos = object2_pos + o2_offset;
+          if math::intersect_square(o1_pos, o1_size, o2_pos, o2_size) {
+            collided = true;
+            break;
+          }
+        },
+        (&CollisionType::Square(o1_offset, o1_size), &CollisionType::Circle(o2_offset, o2_radius)) => {
+          let o1_pos = object1_pos + o1_offset;
+          let o2_pos = object2_pos + o2_offset;
+          if math::circle_intersect_square(o2_pos, o2_radius, o1_pos, o1_size) {
+            collided = true;
+            break;
+          }
+        },
+        (&CollisionType::Circle(o1_offset, o1_radius), &CollisionType::Square(o2_offset, o2_size)) => {
+          let o1_pos = object1_pos + o1_offset;
+          let o2_pos = object2_pos + o2_offset;
+          if math::circle_intersect_square(o1_pos, o1_radius, o2_pos, o2_size) {
+            collided = true;
+            break;
+          }
+        },
+        (&CollisionType::Circle(o1_offset, o1_radius), &CollisionType::Circle(o2_offset, o2_size)) => {
+          let o1_pos = object1_pos + o1_offset;
+          let o2_pos = object2_pos + o2_offset;
+          if math::intersect_circle(o1_pos, o1_radius, o2_pos, o2_size) {
+            collided = true;
+            break;
+          }
+        },
+        _ => {
+        
+        }
+      }
+    }
+    if collided {
+      break;
+    }
+  }
+  
+  collided
+}
+
 fn entity_into_object(object: &mut Box<dyn GenericObject>, entity: &mut Box<dyn GenericEntity>, _delta_time: f32) {
   let object_collision = object.collision_data();
   let entity_collision = entity.collision_data();
   
-  for i in 0..entity_collision.len() {
-    for j in 0..object_collision.len() {
-      match entity_collision[i] {
-        CollisionType::Square(e_offset, e_size) => {
-          let e_pos = entity.position() + e_offset;
-          
-          match object_collision[j] {
-            CollisionType::Square(o_offset, o_size) => {
-              let o_pos = object.position() + o_offset;
-              if math::intersect_square(e_pos, e_size, o_pos, o_size) {
-                match entity.style() {
-                  EntityStyle::Character(_) | EntityStyle::Player => {
-                    
-                  },
-                  EntityStyle::Bullet(_) => {
-                    // kill bullet
-                    entity.take_damage(1);
-                  },
-                  _ => {},
-                }
-                break;
-              }
-            },
-            CollisionType::Circle(o_offset, o_radius) => {
-              let o_pos = object.position() + o_offset;
-              if math::circle_intersect_square(o_pos, o_radius, e_pos, e_size) {
-                match entity.style() {
-                  EntityStyle::Character(_) | EntityStyle::Player => {
-                    
-                  },
-                  EntityStyle::Bullet(_) => {
-                    // kill bullet
-                    entity.take_damage(1);
-                  },
-                  _ => {},
-                }
-                break;
-              }
-            },
-          }
-        },
-        CollisionType::Circle(e_offset, e_radius) => {
-          let e_pos = entity.position() + e_offset;
-          
-          match object_collision[j] {
-            CollisionType::Square(o_offset, o_size) => {
+  match entity.style() {
+    EntityStyle::Bullet(_) => {
+      if check_if_collision(object.position(), entity.position(), &object_collision, &entity_collision) {
+        // kill bullet
+        entity.take_damage(1);
+      }
+    },
+    EntityStyle::Character(_) | EntityStyle::Player => {
+      for i in 0..entity_collision.len() {
+        for j in 0..object_collision.len() {
+          match (&entity_collision[i], &object_collision[j]) {
+            (&CollisionType::Circle(e_offset, e_radius), &CollisionType::Square(o_offset, o_size)) => {
+              let e_pos = entity.position() + e_offset;
               let o_pos = object.position() + o_offset;
               if math::circle_intersect_square(e_pos, e_radius, o_pos, o_size) {
-                match entity.style() {
-                  EntityStyle::Character(_) | EntityStyle::Player => {
-                    let entity_pos = character_collision::character_circle_collided_with_square_object(e_pos, e_radius, o_pos, o_size);
-                    entity.set_position(entity_pos);
-                  },
-                  EntityStyle::Bullet(_) => {
-                    entity.take_damage(1);
-                  },
-                  _ => {},
-                }
-                break;
+                let entity_pos = character_collision::character_circle_collided_with_square_object(e_pos, e_radius, o_pos, o_size);
+                entity.set_position(entity_pos);
               }
             },
-            CollisionType::Circle(o_offset, o_radius) => {
-              let o_pos = object.position() + o_offset;
-              if math::intersect_circle(e_pos, e_radius, o_pos, o_radius) {
-                match entity.style() {
-                  EntityStyle::Character(_) | EntityStyle::Player => {
-                    
-                  },
-                  EntityStyle::Bullet(_) => {
-                    // kill bullet
-                    entity.take_damage(1);
-                  },
-                  _ => {},
-                }
-                break;
-              }
-            },
+            _ => {}
           }
         }
       }
-    }
+    },
+    
+    _ => {},
   }
 }
 
 pub fn process_collisions(objects: &mut Vec<Box<dyn GenericObject>>, 
                           entity: &mut Vec<(Option<Box<dyn GenericEntityController>>, Box<dyn GenericEntity>)>,
                           bullets: &mut Vec<(Option<Box<dyn GenericBulletController>>, Box<dyn GenericEntity>)>,
+                          portal: &mut Option<PortalPad>,
                           loot: &mut Vec<Loot>,
                           rng: &mut ThreadRng,
                           delta_time: f32) -> Vec<Loot> {
@@ -138,6 +136,10 @@ pub fn process_collisions(objects: &mut Vec<Box<dyn GenericObject>>,
         if loot_collected {
           loot.remove(j+l_offset);
         }
+      }
+      
+      if let Some(portal) = portal {
+        character_collision::player_into_portal(portal, &mut entity[i].1, delta_time);
       }
       break;
     }
@@ -193,13 +195,21 @@ pub fn process_collisions(objects: &mut Vec<Box<dyn GenericObject>>,
       if friendly_bullet != friendly_entity {
         bullet_collision::bullet_into_entity(&mut bullets[i+offset].1, &mut entity[j+e_offset].1, delta_time);
         
+        if bullets[i+offset].1.hit_points() == 0 {
+          let mut buffs = bullets[i+offset].1.weapon().buffs();
+          for i in 0..buffs.len() {
+            let new_bullets = buffs[i].apply_to_enemy(&mut entity[j+e_offset].1,
+                                                      delta_time);
+          }
+        }
+        
         if entity[j+e_offset].1.hit_points() == 0 {
-          let drop = entity[j+e_offset].1.drop_loot(rng);
+          let drops = entity[j+e_offset].1.drop_loot(rng);
           entity.remove(j+e_offset);
           e_offset += 1;
           
-          if let Some(e_loot) = drop {
-            new_loot.push(e_loot);
+          for drop in drops {
+            new_loot.push(drop);
           }
         }
         

@@ -42,7 +42,7 @@ impl LootTable for DiamondEnemy {
     &mut self.l_data
   }
   
-  fn drop_loot(&self, rng: &mut ThreadRng) -> Option<Loot> {
+  fn drop_loot(&self, rng: &mut ThreadRng) -> Vec<Loot> {
     self.diamond_enemy_loot(self.position(), rng)
   }
 }

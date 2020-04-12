@@ -46,11 +46,11 @@ fn fps_overlay(draw_calls: &mut Vec<DrawCall>, dimensions: Vector2<f32>, fps: f6
 }
 
 fn main() {
-  let (mut graphics, event_loop) = CoreMaat::new("ChainDown".to_string(), (MAJOR) << 22 | (MINOR) << 12 | (PATCH), 1280.0, 1080.0, true);
+  let (mut graphics, event_loop) = CoreMaat::new("TDChainGame".to_string(), (MAJOR) << 22 | (MINOR) << 12 | (PATCH), 1280.0, 1080.0, true);
   //graphics.set_icon("./resources/textures/entities/Sun_glasses.png".to_string());
   graphics.preload_font(String::from("Arial"),
-                        String::from("./resources/fonts/TimesNewRoman.png"),
-                        include_bytes!("../resources/fonts/TimesNewRoman.fnt"));
+                        String::from("./resources/fonts/azonix.png"),
+                        include_bytes!("../resources/fonts/azonix.fnt"));
   graphics.preload_texture(String::from("Logo"), 
                            String::from("./resources/textures/Logo.png"));
   
@@ -60,15 +60,43 @@ fn main() {
   graphics.add_texture("player".to_string(), "./resources/textures/player.png".to_string());
   graphics.add_texture("circle".to_string(), "./resources/textures/circle.png".to_string());
   graphics.add_texture("bullet".to_string(), "./resources/textures/bullet.png".to_string());
-  graphics.add_texture("buff".to_string(), "./resources/textures/buff.png".to_string());
+  graphics.add_texture("buff_spritesheet".to_string(), "./resources/textures/buffs/buff_spritesheet.png".to_string());
   
   graphics.add_texture("club_enemy".to_string(), "./resources/textures/club_enemy.png".to_string());
   graphics.add_texture("diamond_enemy".to_string(), "./resources/textures/diamond_enemy.png".to_string());
   graphics.add_texture("heart_enemy".to_string(), "./resources/textures/heart_enemy.png".to_string());
   graphics.add_texture("spade_enemy".to_string(), "./resources/textures/spade_enemy.png".to_string());
   
+  graphics.add_texture("cross_hair".to_string(), "./resources/textures/crosshair.png".to_string());
+  graphics.add_texture("fire_particle".to_string(), "./resources/textures/particle_effects/ice.png".to_string());
+  graphics.add_texture("portal".to_string(), "./resources/textures/portal.png".to_string());
+  
+  graphics.add_texture("electric_bullet".to_string(), "./resources/textures/bullets/electric_bullet.png".to_string());
+  graphics.add_texture("ice_bullet".to_string(), "./resources/textures/bullets/ice_bullet.png".to_string());
+  graphics.add_texture("fire_bullet".to_string(), "./resources/textures/bullets/fire_bullet.png".to_string());
+  graphics.add_texture("enemy_indicator".to_string(), "./resources/textures/enemy_indicator.png".to_string());
+  
+  graphics.create_instance_texture_buffer("".to_string(), "".to_string());
+  graphics.create_instance_texture_buffer("player".to_string(), "player".to_string());
+  graphics.create_instance_texture_buffer("circle".to_string(), "circle".to_string());
+  graphics.create_instance_texture_buffer("bullet".to_string(), "bullet".to_string());
+  graphics.create_instance_texture_buffer("buff_spritesheet".to_string(), "buff_spritesheet".to_string());
+  graphics.create_instance_texture_buffer("club_enemy".to_string(),"club_enemy".to_string());
+  graphics.create_instance_texture_buffer("diamond_enemy".to_string(), "diamond_enemy".to_string());
+  graphics.create_instance_texture_buffer("heart_enemy".to_string(), "heart_enemy".to_string());
+  graphics.create_instance_texture_buffer("spade_enemy".to_string(),"spade_enemy".to_string());
+  graphics.create_instance_texture_buffer("electric_bullet".to_string(),"electric_bullet".to_string());
+  graphics.create_instance_texture_buffer("ice_bullet".to_string(),"ice_bullet".to_string());
+  graphics.create_instance_texture_buffer("fire_bullet".to_string(),"fire_bullet".to_string());
+  
+  graphics.create_instance_texture_buffer("fire_particle".to_string(),"fire_particle".to_string());
+  graphics.create_instance_texture_buffer("portal".to_string(),"portal".to_string());
+  graphics.create_instance_texture_buffer("enemy_indicator".to_string(),"enemy_indicator".to_string());
+  
   graphics.load_shaders();
   graphics.set_clear_colour(0.2, 0.2, 0.2, 1.0);
+  
+  graphics.hide_cursor();
   
   let mut game: Box<dyn Scene> = Box::new(LoadScreen::new());
   

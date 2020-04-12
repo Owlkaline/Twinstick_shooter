@@ -1,9 +1,11 @@
 
 pub use self::straight_line_controller::StraightLineBulletController;
 pub use self::spiral_controller::SpiralBulletController;
+pub use self::homing_controller::HomingBulletController;
 
 mod straight_line_controller;
 mod spiral_controller;
+mod homing_controller;
 
 use maat_input_handler::MappedKeys;
 use maat_graphics::cgmath::Vector2;

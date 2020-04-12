@@ -43,8 +43,8 @@ impl LootTable for Player {
     &mut self.l_data
   }
   
-  fn drop_loot(&self, rng: &mut ThreadRng) -> Option<Loot> {
-    None
+  fn drop_loot(&self, rng: &mut ThreadRng) -> Vec<Loot> {
+    Vec::new()
   }
 }
 

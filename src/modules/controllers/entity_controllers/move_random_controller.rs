@@ -6,6 +6,8 @@ use maat_input_handler::MappedKeys;
 use crate::modules::controllers::GenericEntityController;
 use crate::modules::entity::GenericEntity;
 
+use maat_graphics::camera::OrthoCamera;
+
 use rand::prelude::ThreadRng;
 use rand::Rng;
 
@@ -28,7 +30,7 @@ impl RandomMoveEntityController {
 
 impl GenericEntityController for RandomMoveEntityController {
   fn update(&mut self, entity: &mut Box<dyn GenericEntity>, rng: &mut ThreadRng, _keys: &MappedKeys, 
-            _left_mouse: bool, _mouse: Vector2<f32>, delta_time: f32) {
+            _camera: &OrthoCamera, _left_mouse: bool, _mouse: Vector2<f32>, delta_time: f32) {
     self.time_left -= delta_time;
     
     if !entity.weapon().reloading() && !entity.weapon().unjamming() {
@@ -43,9 +45,9 @@ impl GenericEntityController for RandomMoveEntityController {
        entity.position().x > self.target_location.x-10.0 && entity.position().x < self.target_location.x+10.0 &&
        entity.position().y < self.target_location.y+10.0 && entity.position().y > self.target_location.y-10.0 {
       // set new target location
-      let x = rng.gen::<f32>() * 1280.0;
-      let y = rng.gen::<f32>() * 720.0;
-      self.target_location = Vector2::new(x, y);
+      let x = rng.gen::<f32>() * 500.0 - 250.0;
+      let y = rng.gen::<f32>() * 500.0 - 250.0;
+      self.target_location = entity.position() + Vector2::new(x, y);
       self.time_left = TIMER;
     }
     

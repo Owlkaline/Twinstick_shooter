@@ -7,18 +7,25 @@ use maat_graphics::cgmath::Vector2;
 pub struct Loot {
   data: ObjectData,
   buff: Box<Buff>,
+  blueprint: bool,
 }
 
 impl Loot {
   pub fn new(pos: Vector2<f32>, buff: Box<Buff>) -> Loot {
+    let (texture, idx, rows) = buff.sprite_details();
     Loot {
-      data: ObjectData::new(pos, Vector2::new(36.0, 36.0), "buff".to_string()),
+      data: ObjectData::new_spritesheet(pos, Vector2::new(48.0, 48.0), texture, idx, rows),
       buff,
+      blueprint: false,
     }
   }
   
-  pub fn get_buff(&mut self) -> &Box<dyn Buff> {
+  pub fn get_buff(&self) -> &Box<dyn Buff> {
     &self.buff
+  }
+  
+  pub fn is_blueprint(&self) -> bool {
+    self.blueprint
   }
 }
 
