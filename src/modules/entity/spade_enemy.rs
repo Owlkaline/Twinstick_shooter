@@ -5,7 +5,6 @@ use crate::modules::loot::{Loot, LootTable, LootTableData};
 use maat_graphics::cgmath::Vector2;
 
 use rand::prelude::ThreadRng;
-use rand::Rng;
 
 pub struct SpadeEnemy {
   o_data: ObjectData,
@@ -17,7 +16,7 @@ impl SpadeEnemy {
   pub fn new(pos: Vector2<f32>) -> SpadeEnemy {
     SpadeEnemy {
       o_data: ObjectData::new(pos, Vector2::new(48.0, 48.0), "spade_enemy".to_string()),
-      e_data: EntityData::new().is_enemy_character().set_hit_points(40),
+      e_data: EntityData::new().is_enemy_character().set_base_hit_points(40).finish(),
       l_data: LootTableData::new(),
     }
   }

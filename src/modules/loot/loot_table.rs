@@ -6,11 +6,10 @@ use crate::modules::loot::Loot;
 use crate::modules::buffs::*;
 
 use rand::prelude::ThreadRng;
-use rand::thread_rng;
 use rand::Rng;
 
 #[repr(i32)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum LootRarity {
   Common = 50,
   Uncommon = 13,
@@ -48,7 +47,7 @@ impl PossibleLoot {
     Loot::new(pos, self.related_buff())
   }
   
-  pub fn related_buff(&self) -> Box<Buff> {
+  pub fn related_buff(&self) -> Box<dyn Buff> {
     match self {
       PossibleLoot::AmmoRefill => {
         Box::new(AmmoRefillBuff::new())
@@ -90,16 +89,16 @@ impl PossibleLoot {
         Box::new(IceProjectileBuff::new())
       },
       PossibleLoot::EntityHitPoints => {
-        Box::new(EntityHitPointBuff::new(1.0).modify_additivily())
+        Box::new(EntityHitPointModifierBuff::new(10.0).percentage_value())
       },
       PossibleLoot::EntityHeal => {
         Box::new(EntityHealBuff::new(1.0).modify_additivily())
       }
       PossibleLoot::EntitySize => {
-        Box::new(EntitySizeBuff::new(0.9).modify_multiplicatively())
+        Box::new(EntitySizeBuff::new(-10.0).percentage_value())
       },
       PossibleLoot::EntitySpeed => {
-        Box::new(EntitySpeedBuff::new(1.1).modify_multiplicatively())
+        Box::new(EntitySpeedBuff::new(10.0).percentage_value())
       },
       PossibleLoot::CurveProjectile => {
         Box::new(ControllerCurveBuff::new())

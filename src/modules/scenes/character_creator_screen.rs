@@ -5,8 +5,6 @@ use crate::modules::scenes::SceneData;
 use crate::modules::scenes::{PlayScreen};
 use crate::cgmath::{Vector2, Vector4};
 
-const LOGO_TIMER: f32 = 1.5;
-
 pub struct CharacterCreatorScreen {
   data: SceneData,
 }
@@ -33,9 +31,7 @@ impl Scene for CharacterCreatorScreen {
     Box::new(PlayScreen::new(dim))
   }
   
-  fn update(&mut self, delta_time: f32) {
-    
-    
+  fn update(&mut self, _delta_time: f32) {
     if self.data().keys.m_pressed() {
       self.mut_data().next_scene = true;
     }

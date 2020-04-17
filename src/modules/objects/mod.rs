@@ -68,6 +68,14 @@ impl ObjectData {
       collision_data: vec!(CollisionType::new_square(Vector2::zero(), size)),
     }
   }
+  
+  pub fn size(&self) -> Vector2<f32> {
+    self.size
+  }
+  
+  pub fn set_size(&mut self, size: Vector2<f32>) {
+    self.size = size;
+  }
 }
 
 pub trait GenericObject {

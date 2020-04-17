@@ -8,7 +8,6 @@ use crate::modules::loot::{Loot, LootTable, LootTableData};
 const DEFAULT_BASIC_BULLET_SPEED: f32 = 1200.0*1.5;
 
 use rand::prelude::ThreadRng;
-use rand::Rng;
 
 pub struct ElectricBullet {
   o_data: ObjectData,
@@ -21,11 +20,11 @@ impl ElectricBullet {
     
     ElectricBullet {
       o_data: ObjectData::new(pos, Vector2::new(24.0, 24.0), "electric_bullet".to_string()),
-      e_data: EntityData::new().set_bullet_alignment(friendly)
-                               .set_max_speed(DEFAULT_BASIC_BULLET_SPEED)
-                               .set_hit_points(50)
-                               .set_life_time(life_time)
-                               .set_damage(1), // damage per hitpoint
+      e_data: EntityData::new_for_bullet().set_bullet_alignment(friendly)
+                                          .set_base_speed(DEFAULT_BASIC_BULLET_SPEED)
+                                          .set_base_hit_points(50)
+                                          .set_base_life_time(life_time)
+                                          .set_base_damage(1), // damage per hitpoint
       l_data: LootTableData::new(),
     }
   }
@@ -56,7 +55,7 @@ impl LootTable for ElectricBullet {
     &mut self.l_data
   }
   
-  fn drop_loot(&self, rng: &mut ThreadRng) -> Vec<Loot> {
+  fn drop_loot(&self, _rng: &mut ThreadRng) -> Vec<Loot> {
     Vec::new()
   }
 }

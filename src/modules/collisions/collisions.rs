@@ -4,13 +4,12 @@ use maat_graphics::cgmath::Vector2;
 use crate::modules::objects::{GenericObject, PortalPad};
 use crate::modules::entity::{GenericEntity, EntityStyle};
 use crate::modules::controllers::{GenericEntityController, GenericBulletController};
-use crate::modules::loot::{Loot, LootTable};
+use crate::modules::loot::Loot;
 
 use crate::modules::collisions::character_collision;
 use crate::modules::collisions::bullet_collision;
 
 use rand::prelude::ThreadRng;
-use rand::Rng;
 
 #[derive(Clone)]
 pub enum CollisionType {
@@ -66,9 +65,6 @@ pub fn check_if_collision(object1_pos: Vector2<f32>, object2_pos: Vector2<f32>,
             collided = true;
             break;
           }
-        },
-        _ => {
-        
         }
       }
     }
@@ -119,9 +115,10 @@ pub fn process_collisions(objects: &mut Vec<Box<dyn GenericObject>>,
                           portal: &mut Option<PortalPad>,
                           loot: &mut Vec<Loot>,
                           rng: &mut ThreadRng,
-                          delta_time: f32) -> Vec<Loot> {
+                          delta_time: f32) -> (Vec<Loot>, Vec<(Option<Box<dyn GenericBulletController>>, Box<dyn GenericEntity>)>) {
   
   let mut new_loot = Vec::new();
+  let mut fresh_bullets = Vec::new();
   
   // player into loot 
   for i in 0..entity.len() {
@@ -196,11 +193,13 @@ pub fn process_collisions(objects: &mut Vec<Box<dyn GenericObject>>,
         bullet_collision::bullet_into_entity(&mut bullets[i+offset].1, &mut entity[j+e_offset].1, delta_time);
         
         if bullets[i+offset].1.hit_points() == 0 {
-          let mut buffs = bullets[i+offset].1.weapon().buffs();
+         /* let mut buffs = bullets[i+offset].1.weapon().buffs();
           for i in 0..buffs.len() {
             let new_bullets = buffs[i].apply_to_enemy(&mut entity[j+e_offset].1,
                                                       delta_time);
-          }
+          }*/
+          bullets[i+offset].1.fire_based_on_entity(rng, &entity[j+e_offset].1, delta_time);
+          fresh_bullets.append(&mut bullets[i+offset].1.update_weapon(delta_time));
         }
         
         if entity[j+e_offset].1.hit_points() == 0 {
@@ -222,7 +221,7 @@ pub fn process_collisions(objects: &mut Vec<Box<dyn GenericObject>>,
     }
   }
   
-  new_loot
+  (new_loot, fresh_bullets)
 }
 
 

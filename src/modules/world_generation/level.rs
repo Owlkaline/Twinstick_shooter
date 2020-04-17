@@ -13,7 +13,7 @@ use rand::Rng;
 pub struct Level {
   square_size: Vector2<f32>,
   grid_size: Vector2<u32>,
-  squares: Vec<Box<EnviromentSquare>>,
+  squares: Vec<Box<dyn EnviromentSquare>>,
 }
 
 impl Level {
@@ -27,7 +27,7 @@ impl Level {
   
   pub fn new(grid_squares: Vector2<u32>, square_size: Vector2<f32>, rng: &mut ThreadRng) -> Level {
     
-    let mut squares: Vec<Box<EnviromentSquare>> = Vec::new();
+    let mut squares: Vec<Box<dyn EnviromentSquare>> = Vec::new();
     
     let start_x = -(grid_squares.x as f32*0.5).floor() as i32;
     let start_y = -(grid_squares.y as f32*0.5).floor() as i32;
@@ -54,7 +54,7 @@ impl Level {
     }
   }
   
-  pub fn spawn_player(&self) -> (Option<Box<GenericEntityController>>, Box<GenericEntity>) {
+  pub fn spawn_player(&self) -> (Option<Box<dyn GenericEntityController>>, Box<dyn GenericEntity>) {
     let player = Player::new(Vector2::new(0.0, 0.0), Vector2::new(48.0, 48.0), "player".to_string());
     let mut player: Box<dyn GenericEntity> = Box::new(player);
     let player_control = PlayerEntityController::new();
@@ -77,7 +77,7 @@ impl Level {
     PortalPad::new(Vector2::new(x,y), Vector2::new(128.0, 128.0))
   } 
   
-  pub fn spawn_enivroment(&self, rng: &mut ThreadRng) -> Vec<Box<GenericObject>> {
+  pub fn spawn_enivroment(&self, rng: &mut ThreadRng) -> Vec<Box<dyn GenericObject>> {
     let mut enviroment = Vec::new();
     
     for square in &self.squares {
@@ -87,7 +87,7 @@ impl Level {
     enviroment
   }
   
-  pub fn spawn_enemies(&self, rng: &mut ThreadRng) -> Vec<(Option<Box<GenericEntityController>>, Box<GenericEntity>)> {
+  pub fn spawn_enemies(&self, rng: &mut ThreadRng) -> Vec<(Option<Box<dyn GenericEntityController>>, Box<dyn GenericEntity>)> {
     let mut entity = Vec::new();
     
     for square in &self.squares {
@@ -117,22 +117,22 @@ impl Level {
       y_offset = 1.0;
     }
     
-    let right_wall: Box<GenericObject> = Box::new(Wall::new(Vector2::new(wall_length*0.5 + x_offset*self.square_size.x*0.5 - wall_thiccness*0.5,
+    let right_wall: Box<dyn GenericObject> = Box::new(Wall::new(Vector2::new(wall_length*0.5 + x_offset*self.square_size.x*0.5 - wall_thiccness*0.5,
                                                                          y_offset*self.square_size.y*0.5), 
                                                             Vector2::new(wall_thiccness, wall_height), 
                                                             Vector4::new(0.12, 0.236862745, 0.009411765, 1.0)));
     
-    let top_wall: Box<GenericObject> = Box::new(Wall::new(Vector2::new(x_offset*self.square_size.x*0.5,
+    let top_wall: Box<dyn GenericObject> = Box::new(Wall::new(Vector2::new(x_offset*self.square_size.x*0.5,
                                                                        wall_height*0.5 + y_offset*self.square_size.y*0.5 - wall_thiccness*0.5), 
                                                           Vector2::new(wall_length, wall_thiccness), 
                                                           Vector4::new(0.12, 0.236862745, 0.009411765, 1.0)));
     
-    let bottom_wall: Box<GenericObject> = Box::new(Wall::new(Vector2::new(x_offset*self.square_size.x*0.5,
+    let bottom_wall: Box<dyn GenericObject> = Box::new(Wall::new(Vector2::new(x_offset*self.square_size.x*0.5,
                                                                           -wall_height*0.5 + y_offset*self.square_size.y*0.5 + wall_thiccness*0.5), 
                                                              Vector2::new(wall_length,wall_thiccness), 
                                                              Vector4::new(0.12, 0.236862745, 0.009411765, 1.0)));
                               
-    let left_wall: Box<GenericObject> = Box::new(Wall::new(Vector2::new(-wall_length*0.5 + x_offset*self.square_size.x*0.5 + wall_thiccness*0.5,
+    let left_wall: Box<dyn GenericObject> = Box::new(Wall::new(Vector2::new(-wall_length*0.5 + x_offset*self.square_size.x*0.5 + wall_thiccness*0.5,
                                                                         y_offset*self.square_size.y*0.5), 
                                                            Vector2::new(wall_thiccness, wall_height), 
                                                            Vector4::new(0.12, 0.236862745, 0.009411765, 1.0)));

@@ -1,7 +1,7 @@
 
 use crate::modules::entity::bullets::BasicBullet;
 use crate::modules::entity::GenericEntity;
-use crate::modules::controllers::{GenericBulletController, SpiralBulletController, StraightLineBulletController};
+use crate::modules::controllers::{GenericBulletController, StraightLineBulletController};
 use crate::modules::buffs::BasicProjectileBuff;
 
 use maat_graphics::cgmath::Vector2;
@@ -17,6 +17,12 @@ const DEFAULT_FIRING_SPEED: f32 = 0.5;
 const DEFAULT_RELOAD_SPEED: f32 = 2.0;
 const DEFAULT_JAM_CHANCE: f32 = 0.05; 
 const DEFAULT_JAM_REMOVAL_SPEED: f32 = 0.33;
+
+#[derive(Debug, PartialEq)]
+pub enum ChainPriority {
+  Primary,
+  Secondary,
+}
 
 pub struct Weapon {
   current_ammo: u32,
@@ -36,8 +42,8 @@ pub struct Weapon {
   unjamming: bool,
   jam_chance: f32, // 0-1
   
-  buffs: Vec<Box<Buff>>, // projectile lifetime, damage, etc.
-  primary_buff_chains: Vec<Vec<Box<Buff>>>,
+  buffs: Vec<Box<dyn Buff>>, // projectile lifetime, damage, etc.
+  primary_buff_chains: Vec<Vec<(Box<dyn Buff>, ChainPriority)>>,
   current_chain: usize,
   // Vec<trait weapon modifiers>
   // trait bullet type
@@ -72,7 +78,40 @@ impl Weapon {
       jam_chance, // 5%
       
       buffs: Vec::new(),
-      primary_buff_chains: vec!(vec!(Box::new(BasicProjectileBuff::new()))),
+      primary_buff_chains: vec!(vec!((Box::new(BasicProjectileBuff::new()), ChainPriority::Primary))),
+      current_chain: 0,
+    }
+  }
+  
+  pub fn new_for_bullet() -> Weapon {
+    let clip_size = 100;
+    let max_ammo = 100;
+    
+    let firing_speed = 0.0;
+    let reload_speed = 0.0;
+    let jam_speed = 0.0;
+    let jam_chance = 0.0;
+    
+    Weapon {
+      current_ammo: clip_size,
+      total_ammo: max_ammo,
+      clip_size,
+      max_ammo,
+      
+      reload_timer: 0.0,
+      firing_timer: 0.0,
+      jam_timer: 0.0,
+      firing_speed, // seconds between shots
+      reload_speed,
+      jam_speed,
+      reloading: false,
+      
+      jammed: false,
+      unjamming: false,
+      jam_chance, // 0%
+      
+      buffs: Vec::new(),
+      primary_buff_chains: vec!(vec!((Box::new(BasicProjectileBuff::new()), ChainPriority::Primary))),
       current_chain: 0,
     }
   }
@@ -125,7 +164,7 @@ impl Weapon {
     &self.buffs
   }
   
-  pub fn weapon_chain(&self) -> &Vec<Vec<Box<Buff>>> {
+  pub fn weapon_chain(&self) -> &Vec<Vec<(Box<dyn Buff>, ChainPriority)>> {
     &self.primary_buff_chains
   }
    
@@ -158,22 +197,40 @@ impl Weapon {
     self.primary_buff_chains.clear();
   }
   
-  pub fn add_buff(&mut self, buff: Box<Buff>) {
+  pub fn add_buff(&mut self, buff: Box<dyn Buff>) {
     self.buffs.push(buff);
   }
   
-  pub fn add_primary_buff(&mut self, buff: Box<Buff>) {
-    let mut end_of_stack = self.current_chain as i32-1;
+  pub fn add_primary_buff(&mut self, buff: Box<dyn Buff>) {
+    let end_of_stack = self.current_chain as i32-1;
     if end_of_stack < 0 {
-      self.primary_buff_chains.push(vec!(buff));
+      self.primary_buff_chains.push(vec!((buff, ChainPriority::Primary)));
     } else {
-      self.primary_buff_chains.insert(end_of_stack as usize, vec!(buff));
+      self.primary_buff_chains.insert((end_of_stack+1) as usize, vec!((buff, ChainPriority::Primary)));
+      self.current_chain+=1;
     }
-    
   }
   
-  pub fn add_to_active_chain(&mut self, buff: Box<Buff>) {
-    self.primary_buff_chains[self.current_chain].push(buff);
+  pub fn add_to_active_chain(&mut self, buff: Box<dyn Buff>, priority: ChainPriority) {
+    self.primary_buff_chains[self.current_chain].push((buff, priority));
+  }
+  
+  pub fn add_to_active_chain_as_primary(&mut self, buff: Box<dyn Buff>) {
+    self.add_to_active_chain(buff, ChainPriority::Primary);
+  }
+  
+  pub fn add_to_active_chain_as_secondary(&mut self, buff: Box<dyn Buff>) {
+    self.add_to_active_chain(buff, ChainPriority::Secondary);
+  }
+  
+  pub fn more_than_one_primary_in_chain(&self) -> bool {
+    let mut count = 0;
+    for i in 0..self.primary_buff_chains[self.current_chain].len() {
+      if matches!(self.primary_buff_chains[self.current_chain][i].1, ChainPriority::Primary) {
+        count += 1;
+      }
+    }
+    count > 1
   }
   
   pub fn update(&mut self, delta_time: f32) {
@@ -208,7 +265,7 @@ impl Weapon {
   }
   
   pub fn fire(&mut self, rng: &mut ThreadRng, spawn_pos: Vector2<f32>, entity_angle: f32, 
-                         entity_velocity: Vector2<f32>, friendly: bool, delta_time: f32) -> Vec<(Option<Box<dyn GenericBulletController>>, 
+                         _entity_velocity: Vector2<f32>, friendly: bool, delta_time: f32) -> Vec<(Option<Box<dyn GenericBulletController>>, 
                                                                                                 Box<dyn GenericEntity>)> {
     let bullet_life_time = 0.5;
     
@@ -225,30 +282,68 @@ impl Weapon {
       self.firing_timer = self.firing_speed;
       let mut bullet_controller = None;
       
-      let mut bullet_to_fire: Box<GenericEntity> = Box::new(BasicBullet::new(spawn_pos, bullet_life_time, friendly).set_angle(entity_angle));
-      if let Some(new_bullet) = self.primary_buff_chains[self.current_chain][0].apply_to_bullet(&mut bullet_to_fire, delta_time) {
-        bullet_to_fire = new_bullet;
+      let mut bullet_to_fire: Vec<Box<dyn GenericEntity>> = vec!(Box::new(BasicBullet::new(spawn_pos, bullet_life_time, friendly).set_angle(entity_angle)));
+      if let Some(mut new_bullet) = self.primary_buff_chains[self.current_chain][0].0.apply_to_bullet(&mut bullet_to_fire[0], delta_time) {
+        new_bullet.mut_weapon().clear_all_buffs();
+        self.primary_buff_chains[self.current_chain][0].0.apply_to_entity(&mut new_bullet, delta_time);
+        bullet_to_fire[0] = new_bullet;
       }
       
-      for chain_buff in &self.primary_buff_chains[self.current_chain] {
-        if bullet_controller.is_none() {
+      //println!("\n\n\n");
+      let mut num_to_next_primary = 0;
+      let mut primary_count = 0;
+      for (chain_buff, priority) in &self.primary_buff_chains[self.current_chain] {
+        if num_to_next_primary != 0 && matches!(priority, ChainPriority::Primary) {
+          primary_count += 1;
+          if primary_count > 1 {
+            break;
+          }
+        }
+        
+        //println!("buff applied to bullet: {:?} : {:?}", chain_buff.sprite_details(), priority);
+        
+        if num_to_next_primary != 0 && bullet_controller.is_none() {
           if let Some(controller) = chain_buff.set_bullet_controller() {
             bullet_controller = Some(controller);
           }
         }
         
-        chain_buff.apply_to_bullet(&mut bullet_to_fire, delta_time);
+        num_to_next_primary += 1;
+        
+        for i in 0..bullet_to_fire.len() {
+          let new_bullet = chain_buff.apply_to_bullet(&mut bullet_to_fire[i], delta_time);
+          if let Some(mut new_bullet) = new_bullet {
+            if let Some(real_bullet) = self.primary_buff_chains[self.current_chain][0].0.apply_to_bullet(&mut new_bullet, delta_time) {
+              new_bullet = real_bullet;
+            }
+            new_bullet.mut_weapon().clear_all_buffs();
+            self.primary_buff_chains[self.current_chain][0].0.apply_to_entity(&mut new_bullet, delta_time);
+            bullet_to_fire.push(new_bullet);
+          }
+        }
       }
       
       for i in 0..self.buffs.len() {
-        self.buffs[i].apply_to_bullet(&mut bullet_to_fire, delta_time);
+        for j in 0..bullet_to_fire.len() {
+          self.buffs[i].apply_to_bullet(&mut bullet_to_fire[j], delta_time);
+        }
       }
       
       if bullet_controller.is_none() {
         bullet_controller = Some(Box::new(StraightLineBulletController::new()));
       }
+      
+      for i in (num_to_next_primary)..self.primary_buff_chains[self.current_chain].len() {
+        //println!("buff attached to bullet: {:?} : {:?}", self.primary_buff_chains[self.current_chain][i].0.sprite_details(), self.primary_buff_chains[self.current_chain][i].1);
+        for j in 0..bullet_to_fire.len() {
+          self.primary_buff_chains[self.current_chain][i].0.apply_to_entity(&mut bullet_to_fire[j], delta_time);
+        }
+      }
+      
       // add to bullets
-      bullets.push((bullet_controller, bullet_to_fire));
+      for bullet in bullet_to_fire.drain(..) {
+        bullets.push((bullet_controller.clone(), bullet));
+      }
     }
     
     bullets

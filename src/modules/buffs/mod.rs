@@ -1,4 +1,3 @@
-
 pub use self::weapon_buffs::*;
 pub use self::secondary_projectile_buffs::*;
 pub use self::primary_projectile_buffs::*;
@@ -6,6 +5,9 @@ pub use self::entity_buffs::*;
 pub use self::controller_projectile_buffs::*;
 pub use self::chain_buffs::*;
 pub use self::coin::CoinBuff;
+
+#[macro_use]
+mod macros;
 
 mod weapon_buffs;
 mod secondary_projectile_buffs;
@@ -16,9 +18,10 @@ mod chain_buffs;
 mod coin;
 
 use crate::modules::controllers::GenericBulletController;
-use crate::modules::entity::GenericEntity;
+use crate::modules::entity::{StatModifier, GenericEntity};
 
 use crate::modules::loot::LootRarity;
+
 
 #[derive(Clone)]
 pub struct BuffData {
@@ -66,6 +69,7 @@ pub trait Buff {
   fn data(&self) -> &BuffData;
   fn mut_data(&mut self) -> &mut BuffData;
   
+  fn apply_stat_modifiers(&self, data: &mut StatModifier);
   fn set_bullet_controller(&self) -> Option<Box<dyn GenericBulletController>>;
   fn apply_to_entity(&self, entity: &mut Box<dyn GenericEntity>, delta_time: f32);
   fn apply_to_bullet(&self, bullet: &mut Box<dyn GenericEntity>, delta_time: f32) -> Option<Box<dyn GenericEntity>>;

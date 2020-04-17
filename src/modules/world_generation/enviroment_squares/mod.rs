@@ -39,18 +39,18 @@ pub trait EnviromentSquare {
   
   fn draw(&self, draw_calls: &mut Vec<DrawCall>);
   
-  fn spawn_enemy(&self, pos: Vector2<f32>) -> (Option<Box<GenericEntityController>>, Box<GenericEntity>);
+  fn spawn_enemy(&self, pos: Vector2<f32>) -> (Option<Box<dyn GenericEntityController>>, Box<dyn GenericEntity>);
   
-  fn spawn_enviroment(&self, rng: &mut ThreadRng) -> Vec<Box<GenericObject>>;
+  fn spawn_enviroment(&self, rng: &mut ThreadRng) -> Vec<Box<dyn GenericObject>>;
   
-  fn spawn_enemies(&self, rng: &mut ThreadRng) -> Vec<(Option<Box<GenericEntityController>>, Box<GenericEntity>)> {
+  fn spawn_enemies(&self, rng: &mut ThreadRng) -> Vec<(Option<Box<dyn GenericEntityController>>, Box<dyn GenericEntity>)> {
     let mut enemies = Vec::new();
     
     let min_x = self.location().x as f32*self.size().x - self.size().x*0.5;
     let min_y = self.location().y as f32*self.size().y - self.size().y*0.5;
     
     let chances_to_spawn = (self.size().x/500.0 * self.size().y/500.0) as usize;
-    for i in 0..chances_to_spawn {
+    for _ in 0..chances_to_spawn {
       if rng.gen::<f32>() < 0.2 {
         let x = min_x + rng.gen::<f32>() * self.size().x;
         let y = min_y + rng.gen::<f32>() * self.size().y;

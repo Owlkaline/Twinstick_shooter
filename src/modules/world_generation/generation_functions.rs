@@ -27,7 +27,7 @@ pub fn generate_natural_cave(width: u32, height: u32, rng: &mut ThreadRng) -> Ve
   
   for i in 0..width as usize {
     walls.push(Vec::new());
-    for j in 0..height as usize {
+    for _ in 0..height as usize {
       if rng.gen::<f32>() < 0.025 {
         walls[i].push(true);
       } else { 

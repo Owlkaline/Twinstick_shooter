@@ -1,4 +1,4 @@
-use maat_graphics::cgmath::{Vector2, Vector4};
+use maat_graphics::cgmath::Vector2;
 
 use crate::modules::objects::{ ObjectData, GenericObject};
 

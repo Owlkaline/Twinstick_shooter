@@ -6,6 +6,8 @@ pub mod controllers;
 
 pub mod collisions;
 pub mod weapon;
+
+#[macro_use] 
 pub mod buffs;
 
 pub mod loot;

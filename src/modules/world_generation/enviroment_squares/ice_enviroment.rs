@@ -2,15 +2,13 @@
 use maat_graphics::DrawCall;
 use maat_graphics::cgmath::{Vector2, Vector4, Zero};
 
-use crate::modules::world_generation::generation_functions;
-use crate::modules::objects::{GenericObject, Wall};
+use crate::modules::objects::GenericObject;
 
 use crate::modules::world_generation::{EnviromentSquare, EnviromentSquareData};
 use crate::modules::entity::{GenericEntity, HeartEnemy};
 use crate::modules::controllers::{GenericEntityController, RandomMoveEntityController};
 
 use rand::prelude::*;
-use rand::Rng;
 
 pub struct IceEnviroment {
   data: EnviromentSquareData,
@@ -33,13 +31,13 @@ impl EnviromentSquare for IceEnviroment {
     &mut self.data
   }
   
-  fn spawn_enviroment(&self, rng: &mut ThreadRng) -> Vec<Box<GenericObject>> {
+  fn spawn_enviroment(&self, _rng: &mut ThreadRng) -> Vec<Box<dyn GenericObject>> {
     Vec::new()
   }
   
-  fn spawn_enemy(&self, pos: Vector2<f32>) -> (Option<Box<GenericEntityController>>, Box<GenericEntity>) {
+  fn spawn_enemy(&self, pos: Vector2<f32>) -> (Option<Box<dyn GenericEntityController>>, Box<dyn GenericEntity>) {
     let mut enemy: Box<dyn GenericEntity> = Box::new(HeartEnemy::new(pos));
-    enemy.set_max_speed(150.0);
+    enemy.set_base_speed(150.0);
     enemy.clear_collision_data();
     enemy.add_circle_collider(Vector2::zero(), enemy.size().x.min(enemy.size().y)*0.5);
     

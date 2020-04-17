@@ -14,7 +14,23 @@ use rand::prelude::ThreadRng;
 
 use crate::modules::entity::GenericEntity;
 
-pub trait GenericBulletController {
+pub trait GenericBulletControllerClone {
+  fn clone_generic_bullet_controller(&self) -> Box<dyn GenericBulletController>;
+}
+
+impl<T: 'static + GenericBulletController + Clone> GenericBulletControllerClone for T {
+  fn clone_generic_bullet_controller(&self) -> Box<dyn GenericBulletController> {
+    Box::new(self.clone())
+  }
+}
+
+impl Clone for Box<dyn GenericBulletController> {
+  fn clone(&self) -> Box<dyn GenericBulletController> {
+    self.clone_generic_bullet_controller()
+  }
+}
+
+pub trait GenericBulletController: GenericBulletControllerClone {
   fn update(&mut self, entity: &mut Box<dyn GenericEntity>, rng: &mut ThreadRng, keys: &MappedKeys, 
             left_mouse: bool, mouse: Vector2<f32>, delta_time: f32);
   

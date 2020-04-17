@@ -1,7 +1,6 @@
-
 use crate::modules::buffs::{BuffData, Buff};
 use crate::modules::controllers::GenericBulletController;
-use crate::modules::entity::GenericEntity;
+use crate::modules::entity::{StatModifier, GenericEntity};
 
 use crate::modules::loot::LootRarity;
 
@@ -37,29 +36,33 @@ impl Buff for EntityHealBuff {
     &mut self.data
   }
   
+  fn apply_stat_modifiers(&self, _data: &mut StatModifier) {
+    
+  }
+  
   fn set_bullet_controller(&self) -> Option<Box<dyn GenericBulletController>> {
     None
   }
   
-  fn apply_to_entity(&self, entity: &mut Box<GenericEntity>, delta_time: f32) {
+  fn apply_to_entity(&self, entity: &mut Box<dyn GenericEntity>, _delta_time: f32) {
     let v = self.data().modified_value as u32;
     if let Some(additive) = self.data().additive {
       let current_health = entity.hit_points();
       if additive {
-        entity.set_hit_points(current_health + v);
+      //  entity.set_hit_points(current_health + v);
       } else {
-        entity.set_hit_points(current_health * v);
+      //  entity.set_hit_points(current_health * v);
       }
     } else {
-      entity.set_hit_points(v);
+     // entity.set_hit_points(v);
     }
   }
   
-  fn apply_to_bullet(&self, bullet: &mut Box<dyn GenericEntity>, delta_time: f32) -> Option<Box<dyn GenericEntity>> {
+  fn apply_to_bullet(&self, _bullet: &mut Box<dyn GenericEntity>, _delta_time: f32) -> Option<Box<dyn GenericEntity>> {
     None
   }
   
-  fn apply_to_enemy(&self, enemy: &mut Box<dyn GenericEntity>, delta_time: f32) -> Vec<Box<dyn GenericEntity>> {
+  fn apply_to_enemy(&self, _enemy: &mut Box<dyn GenericEntity>, _delta_time: f32) -> Vec<Box<dyn GenericEntity>> {
     Vec::new()
   }
 }

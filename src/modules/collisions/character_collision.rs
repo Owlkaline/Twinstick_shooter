@@ -2,12 +2,11 @@ use maat_graphics::cgmath::{Vector2, Zero};
 use maat_graphics::math;
 
 use crate::modules::collisions;
-use crate::modules::collisions::CollisionType;
 use crate::modules::loot::Loot;
 use crate::modules::entity::GenericEntity;
 use crate::modules::objects::{GenericObject, PortalPad};
 
-pub fn player_into_portal(portal: &mut PortalPad, entity: &mut Box<GenericEntity>, delta_time: f32) {
+pub fn player_into_portal(portal: &mut PortalPad, entity: &mut Box<dyn GenericEntity>, _delta_time: f32) {
   let portal_collision = portal.collision_data();
   let entity_collision = entity.collision_data();
   
@@ -23,7 +22,7 @@ pub fn player_into_loot(loot: &mut Loot, entity: &mut Box<dyn GenericEntity>, de
   let mut player_collected_loot = false;
   
   if collisions::check_if_collision(loot.position(), entity.position(), &loot_collision, &entity_collision) {
-    let mut buff = loot.get_buff();
+    let buff = loot.get_buff();
     buff.apply_to_entity(entity, delta_time);
     player_collected_loot = true;
   }

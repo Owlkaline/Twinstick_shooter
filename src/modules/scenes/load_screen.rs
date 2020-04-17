@@ -2,7 +2,6 @@ use maat_graphics::DrawCall;
 
 use crate::modules::scenes::Scene;
 use crate::modules::scenes::SceneData;
-use crate::modules::scenes::{PlayScreen};
 use crate::cgmath::{Vector2, Vector4};
 
 use crate::modules::scenes::CharacterCreatorScreen;
@@ -39,7 +38,6 @@ impl Scene for LoadScreen {
   }
   
   fn future_scene(&mut self, _window_size: Vector2<f32>) -> Box<dyn Scene> {
-    let dim = self.data().window_dim;
     Box::new(CharacterCreatorScreen::new())
   }
   

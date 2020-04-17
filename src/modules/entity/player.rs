@@ -6,7 +6,6 @@ use maat_graphics::cgmath::Vector2;
 use maat_graphics::math;
 
 use rand::prelude::ThreadRng;
-use rand::Rng;
 
 pub struct Player {
   o_data: ObjectData,
@@ -18,7 +17,7 @@ impl Player {
   pub fn new(pos: Vector2<f32>, size: Vector2<f32>, texture: String) -> Player {
     Player {
       o_data: ObjectData::new(pos, size, texture),
-      e_data: EntityData::new().is_player().set_hit_points(160),
+      e_data: EntityData::new().is_player().set_base_hit_points(160).finish(),
       l_data: LootTableData::new(),
     }
   }
@@ -43,7 +42,7 @@ impl LootTable for Player {
     &mut self.l_data
   }
   
-  fn drop_loot(&self, rng: &mut ThreadRng) -> Vec<Loot> {
+  fn drop_loot(&self, _rng: &mut ThreadRng) -> Vec<Loot> {
     Vec::new()
   }
 }

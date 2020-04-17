@@ -1,7 +1,6 @@
-
 use crate::modules::buffs::{BuffData, Buff};
 use crate::modules::controllers::GenericBulletController;
-use crate::modules::entity::GenericEntity;
+use crate::modules::entity::{StatModifier, GenericEntity};
 
 use crate::modules::loot::LootRarity;
 
@@ -37,31 +36,32 @@ impl Buff for ProjectileSpeedBuff {
     &mut self.data
   }
   
+  fn apply_stat_modifiers(&self, stat: &mut StatModifier) {
+    let v = self.data().modified_value;
+    if let Some(additive) = self.data().additive {
+      if additive {
+        stat.flat_speed += v;
+      } else {
+        stat.percentage_speed += v;
+      }
+    }
+  }
+  
   fn set_bullet_controller(&self) -> Option<Box<dyn GenericBulletController>> {
     None
   }
   
-  fn apply_to_entity(&self, entity: &mut Box<dyn GenericEntity>, delta_time: f32) {
+  fn apply_to_entity(&self, entity: &mut Box<dyn GenericEntity>, _delta_time: f32) {
     entity.mut_weapon().add_buff(Box::new(self.clone()));
   }
   
-  fn apply_to_bullet(&self, bullet: &mut Box<dyn GenericEntity>, delta_time: f32) -> Option<Box<dyn GenericEntity>> {
-    let mut v = self.data().modified_value;
-    if let Some(additive) = self.data().additive {
-      let current_max_speed = bullet.max_speed();
-      if additive {
-        v = current_max_speed + v;
-      } else {
-        v = current_max_speed * v;
-      }
-    }
-    
-    bullet.set_max_speed(v);
+  fn apply_to_bullet(&self, bullet: &mut Box<dyn GenericEntity>, _delta_time: f32) -> Option<Box<dyn GenericEntity>> {
+    bullet.add_stat_buff(Box::new(self.clone()));
     
     None
   }
   
-  fn apply_to_enemy(&self, enemy: &mut Box<dyn GenericEntity>, delta_time: f32) -> Vec<Box<dyn GenericEntity>> {
+  fn apply_to_enemy(&self, _enemy: &mut Box<dyn GenericEntity>, _delta_time: f32) -> Vec<Box<dyn GenericEntity>> {
     Vec::new()
   }
 }

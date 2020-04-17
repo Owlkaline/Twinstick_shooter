@@ -1,7 +1,6 @@
-
 use crate::modules::buffs::{BuffData, Buff};
 use crate::modules::controllers::GenericBulletController;
-use crate::modules::entity::GenericEntity;
+use crate::modules::entity::{StatModifier, GenericEntity};
 use crate::modules::entity::bullets::BasicBullet;
 
 use crate::modules::loot::LootRarity;
@@ -42,11 +41,15 @@ impl Buff for BasicProjectileBuff {
     None
   }
   
-  fn apply_to_entity(&self, entity: &mut Box<GenericEntity>, delta_time: f32) {
+  fn apply_stat_modifiers(&self, _data: &mut StatModifier) {
+    
+  }
+  
+  fn apply_to_entity(&self, entity: &mut Box<dyn GenericEntity>, _delta_time: f32) {
     entity.mut_weapon().add_primary_buff(Box::new(self.clone()));
   }
   
-  fn apply_to_bullet(&self, bullet: &mut Box<dyn GenericEntity>, delta_time: f32) -> Option<Box<dyn GenericEntity>> {
+  fn apply_to_bullet(&self, bullet: &mut Box<dyn GenericEntity>, _delta_time: f32) -> Option<Box<dyn GenericEntity>> {
     let b_pos = bullet.position();
     let b_lt = bullet.life_time();
     let b_friendly = bullet.style().alignment().unwrap().is_friendly();
@@ -55,7 +58,7 @@ impl Buff for BasicProjectileBuff {
     Some(Box::new(BasicBullet::new(b_pos, b_lt, b_friendly).set_angle(b_angle)))
   }
   
-  fn apply_to_enemy(&self, enemy: &mut Box<dyn GenericEntity>, delta_time: f32) -> Vec<Box<dyn GenericEntity>> {
+  fn apply_to_enemy(&self, _enemy: &mut Box<dyn GenericEntity>, _delta_time: f32) -> Vec<Box<dyn GenericEntity>> {
     Vec::new()
   }
 }

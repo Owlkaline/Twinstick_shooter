@@ -6,12 +6,12 @@ use maat_graphics::cgmath::Vector2;
 
 pub struct Loot {
   data: ObjectData,
-  buff: Box<Buff>,
+  buff: Box<dyn Buff>,
   blueprint: bool,
 }
 
 impl Loot {
-  pub fn new(pos: Vector2<f32>, buff: Box<Buff>) -> Loot {
+  pub fn new(pos: Vector2<f32>, buff: Box<dyn Buff>) -> Loot {
     let (texture, idx, rows) = buff.sprite_details();
     Loot {
       data: ObjectData::new_spritesheet(pos, Vector2::new(48.0, 48.0), texture, idx, rows),

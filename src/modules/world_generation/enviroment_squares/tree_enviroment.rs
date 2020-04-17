@@ -10,7 +10,6 @@ use crate::modules::entity::{GenericEntity, ClubEnemy};
 use crate::modules::controllers::{GenericEntityController, RandomMoveEntityController};
 
 use rand::prelude::*;
-use rand::Rng;
 
 pub struct TreeEnviroment {
   data: EnviromentSquareData,
@@ -33,11 +32,11 @@ impl EnviromentSquare for TreeEnviroment {
     &mut self.data
   }
   
-  fn spawn_enviroment(&self, rng: &mut ThreadRng) -> Vec<Box<GenericObject>> {
+  fn spawn_enviroment(&self, rng: &mut ThreadRng) -> Vec<Box<dyn GenericObject>> {
     let size = 20;
     let wall_size: f32 = (self.data().size.x/size as f32).floor();
     
-    let mut walls: Vec<Box<GenericObject>> = Vec::new();
+    let mut walls: Vec<Box<dyn GenericObject>> = Vec::new();
     
     let cells = generation_functions::generate_natural_cave(size, size, rng);
     
@@ -63,9 +62,9 @@ impl EnviromentSquare for TreeEnviroment {
     walls
   }
   
-  fn spawn_enemy(&self, pos: Vector2<f32>) -> (Option<Box<GenericEntityController>>, Box<GenericEntity>) {
+  fn spawn_enemy(&self, pos: Vector2<f32>) -> (Option<Box<dyn GenericEntityController>>, Box<dyn GenericEntity>) {
     let mut enemy: Box<dyn GenericEntity> = Box::new(ClubEnemy::new(pos));
-    enemy.set_max_speed(150.0);
+    enemy.set_base_speed(150.0);
     enemy.clear_collision_data();
     enemy.add_circle_collider(Vector2::zero(), enemy.size().x.min(enemy.size().y)*0.5);
     

@@ -9,6 +9,7 @@ use maat_input_handler::MappedKeys;
 use crate::modules::controllers::GenericBulletController;
 use crate::modules::entity::GenericEntity;
 
+#[derive(Clone)]
 pub struct StraightLineBulletController {
   // stuff
 }

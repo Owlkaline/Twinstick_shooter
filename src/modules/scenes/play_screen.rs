@@ -3,16 +3,14 @@ use maat_graphics::camera::OrthoCamera;
 
 use crate::modules::scenes::{Scene, CharacterCreatorScreen};
 use crate::modules::scenes::SceneData;
-use crate::cgmath::{Vector2, Vector4, Zero};
+use crate::cgmath::{Vector2, Zero};
 
 use rand::prelude::*;
-use rand::Rng;
 
 use crate::modules::world_generation::Level;
-use crate::modules::objects::{GenericObject, Wall, PortalPad};
-use crate::modules::entity::{GenericEntity, Player, ClubEnemy, DiamondEnemy, HeartEnemy, SpadeEnemy};
-use crate::modules::controllers::{GenericEntityController, PlayerEntityController, RandomMoveEntityController,
-                                  GenericBulletController};
+use crate::modules::objects::{GenericObject, PortalPad};
+use crate::modules::entity::GenericEntity;
+use crate::modules::controllers::{GenericEntityController, GenericBulletController};
 use crate::modules::loot::Loot;
 
 use crate::modules::particles::ParticleGenerator;
@@ -20,12 +18,6 @@ use crate::modules::particles::ParticleGenerator;
 use crate::modules::collisions;
 
 use crate::modules::camera_handling;
-
-const ACTIVE_AREA_WIDTH: f32 = 4000.0;
-const ACTIVE_AREA_HEIGHT: f32 = 4000.0;
-
-const LEVEL_WIDTH: f32 = 1280.0*2.0;//ACTIVE_AREA_WIDTH*2.0;
-const LEVEL_HEIGHT: f32 = 720.0*2.0;//ACTIVE_AREA_HEIGHT*2.0;
 
 pub struct PlayScreen {
   data: SceneData,
@@ -43,7 +35,7 @@ pub struct PlayScreen {
 
 impl PlayScreen {
   pub fn new(window_size: Vector2<f32>) -> PlayScreen {
-    let mut rng = thread_rng();
+    let rng = thread_rng();
     
     let mut screen = PlayScreen {
       data: SceneData::new(window_size, Vec::new()),
@@ -68,7 +60,7 @@ impl PlayScreen {
   }
   
   pub fn next_level(&mut self) {
-    let level = Level::new(Vector2::new(3,3), Vector2::new(3000.0, 3000.0), &mut self.rng);
+    let level = Level::new(Vector2::new(1,1), Vector2::new(3000.0, 3000.0), &mut self.rng);
     
     let mut player_entity = {
       
@@ -114,7 +106,6 @@ impl Scene for PlayScreen {
   }
   
   fn future_scene(&mut self, _window_size: Vector2<f32>) -> Box<dyn Scene> {
-    let dim = self.data().window_dim;
     Box::new(CharacterCreatorScreen::new())
   }
   
@@ -138,24 +129,12 @@ impl Scene for PlayScreen {
     
     let keys = self.data().keys.clone();
     
-    let mut offset = 0;
     for i in 0..self.bullets.len() {
-      if i+offset >= self.bullets.len() {
-        break;
-      }
-      
-      self.bullets[i+offset].1.update(delta_time);
-      let (some_controller, bullet) = &mut self.bullets[i+offset];
+      self.bullets[i].1.update(delta_time);
+      let (some_controller, bullet) = &mut self.bullets[i];
       if let Some(controller) = some_controller {
         controller.update(bullet, &mut self.rng, &keys, left_mouse, mouse, delta_time);
       }
-      /*
-      let b_pos = self.bullets[i+offset].1.position();
-      if b_pos.x > ACTIVE_AREA_WIDTH || b_pos.y > ACTIVE_AREA_HEIGHT || 
-         b_pos.x < -ACTIVE_AREA_WIDTH || b_pos.y < -ACTIVE_AREA_HEIGHT {
-        self.bullets.remove(i+offset);
-        offset += 1;
-      }*/
     }
     
     for (some_controller, entity) in &mut self.entity {
@@ -183,11 +162,13 @@ impl Scene for PlayScreen {
     
     self.particles.update(delta_time);
     
-    let mut new_loot = collisions::process_collisions(&mut self.objects, &mut self.entity, 
-                                                      &mut self.bullets, &mut self.next_level_portal,
-                                                      &mut self.loot,
-                                                      &mut self.rng, 
-                                                      delta_time);
+    let (mut new_loot, mut new_bullets) = collisions::process_collisions(&mut self.objects, &mut self.entity, 
+                                                                          &mut self.bullets, &mut self.next_level_portal,
+                                                                          &mut self.loot,
+                                                                          &mut self.rng, 
+                                                                          delta_time);
+    
+    self.bullets.append(&mut new_bullets);
     self.loot.append(&mut new_loot);
   }
   
@@ -235,7 +216,7 @@ impl Scene for PlayScreen {
     draw_calls.push(DrawCall::draw_instanced("ice_bullet".to_string()));
     draw_calls.push(DrawCall::draw_instanced("electric_bullet".to_string()));
     draw_calls.push(DrawCall::draw_instanced("bullet".to_string()));
-    draw_calls.push(DrawCall::draw_instanced("buff_spritesheet".to_string()));
+    draw_calls.push(DrawCall::draw_instanced("buff_spritesheet".to_string())); // loot on ground
     draw_calls.push(DrawCall::draw_instanced("club_enemy".to_string()));
     draw_calls.push(DrawCall::draw_instanced("diamond_enemy".to_string()));
     draw_calls.push(DrawCall::draw_instanced("heart_enemy".to_string()));
@@ -255,10 +236,14 @@ impl Scene for PlayScreen {
       for object in &self.objects {
         object.draw_collisions(draw_calls);
       }
+      
+      for loot in &self.loot {
+        loot.draw_collisions(draw_calls);
+      }
     }
     
     if let Some(idx) = player_idx {
-      self.entity[idx].1.draw_ui(idx, &self.entity, &self.camera, dim, draw_calls);
+      self.entity[idx].1.draw_ui(idx, &self.entity, &self.next_level_portal, &self.camera, dim, draw_calls);
     }
     
     draw_calls.push(DrawCall::draw_instanced("".to_string()));

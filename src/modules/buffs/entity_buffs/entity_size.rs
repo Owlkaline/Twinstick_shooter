@@ -1,11 +1,8 @@
-
 use crate::modules::buffs::{BuffData, Buff};
 use crate::modules::controllers::GenericBulletController;
-use crate::modules::entity::GenericEntity;
+use crate::modules::entity::{StatModifier, GenericEntity};
 
 use crate::modules::loot::LootRarity;
-
-use maat_graphics::cgmath::Vector2;
 
 #[derive(Clone)]
 pub struct EntitySizeBuff {
@@ -15,16 +12,16 @@ pub struct EntitySizeBuff {
 impl EntitySizeBuff {
   pub fn new(value: f32) -> EntitySizeBuff {
     EntitySizeBuff {
-      data: BuffData::new(0, 5, LootRarity::Rare).set_modified_value(value),
+      data: BuffData::new(14, 5, LootRarity::Common).set_modified_value(value),
     }
   }
   
-  pub fn modify_additivily(mut self) -> EntitySizeBuff {
+  pub fn flat_value(mut self) -> EntitySizeBuff {
     self.data = self.data.is_additive();
     self
   }
   
-  pub fn modify_multiplicatively(mut self) -> EntitySizeBuff {
+  pub fn percentage_value(mut self) -> EntitySizeBuff {
     self.data = self.data.is_multiplicative();
     self
   }
@@ -39,29 +36,28 @@ impl Buff for EntitySizeBuff {
     &mut self.data
   }
   
+  fn apply_stat_modifiers(&self, data: &mut StatModifier) {
+    let v = self.data().modified_value;
+    if let Some(additive) = self.data().additive {
+      if !additive {
+        data.percentage_size += v;
+      }
+    }
+  }
+  
   fn set_bullet_controller(&self) -> Option<Box<dyn GenericBulletController>> {
     None
   }
   
-  fn apply_to_entity(&self, entity: &mut Box<GenericEntity>, delta_time: f32) {
-    let v = self.data().modified_value;
-    if let Some(additive) = self.data().additive {
-      let current_size = entity.size();
-      if additive {
-        entity.set_size(current_size + Vector2::new(v,v));
-      } else {
-        entity.set_size(current_size * v);
-      }
-    } else {
-      entity.set_size(Vector2::new(v, v));
-    }
+  fn apply_to_entity(&self, entity: &mut Box<dyn GenericEntity>, _delta_time: f32) {
+    entity.add_stat_buff(Box::new(self.clone()));
   }
   
-  fn apply_to_bullet(&self, bullet: &mut Box<dyn GenericEntity>, delta_time: f32) -> Option<Box<dyn GenericEntity>> {
+  fn apply_to_bullet(&self, _bullet: &mut Box<dyn GenericEntity>, _delta_time: f32) -> Option<Box<dyn GenericEntity>> {
     None
   }
   
-  fn apply_to_enemy(&self, enemy: &mut Box<dyn GenericEntity>, delta_time: f32) -> Vec<Box<dyn GenericEntity>> {
+  fn apply_to_enemy(&self, _enemy: &mut Box<dyn GenericEntity>, _delta_time: f32) -> Vec<Box<dyn GenericEntity>> {
     Vec::new()
   }
 }
