@@ -53,15 +53,19 @@ impl Server {
     self.send_data_to_client(src_addr, &DataType::AddPlayer(self.game.players()[index].clone()).serialise());
     self.send_data_to_client(src_addr, &DataType::PlayerNum(index).serialise());
   }
-    
-  pub fn remove_player(&mut self, src_addr: SocketAddr) {
+  
+  pub fn remove_player(&mut self, index: usize) {
+    let src_addr = self.clients.remove(index);
+    println!("Removing client: {}", src_addr);
+    self.client_last_connection.remove(index);
+    self.game.remove_player(index);
+    self.send_data_to_clients(&DataType::RemovePlayer(index).serialise());
+  }
+  
+  pub fn remove_player_from_addr(&mut self, src_addr: SocketAddr) {
     match self.clients.binary_search(&src_addr) {
       Ok(i) => {
-        println!("Removing client: {}", src_addr);
-        self.clients.remove(i);
-        self.client_last_connection.remove(i);
-        self.game.remove_player(i);
-        self.send_data_to_client(src_addr, &DataType::RemovePlayer(i).serialise());
+        self.remove_player(i);
       },
       Err(e) => {
        // println!("Error: {}", e);
@@ -113,7 +117,7 @@ impl Server {
                   self.game.set_player(idx, p);
                 },
                 DataType::Exit => {
-                  self.remove_player(src_addr);
+                  self.remove_player_from_addr(src_addr);
                 },
                 _ => {
                   
@@ -132,7 +136,7 @@ impl Server {
         //wait_for_fd();
         for i in (0..(self.clients.len() as i32 - 1).max(0) as usize).rev() {
           if self.client_last_connection[i].elapsed() > time::Duration::from_secs(5) {
-            self.remove_player(self.clients[i]);
+            self.remove_player(i);
           }
         }
       },
