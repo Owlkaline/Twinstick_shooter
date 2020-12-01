@@ -54,6 +54,15 @@ impl Server {
     self.send_data_to_client(src_addr, &DataType::PlayerNum(index).serialise());
   }
   
+  pub fn remove_all_players(&mut self) {
+    for i in 0..self.clients.len() {
+      self.clients.remove(i);
+      self.client_last_connection.remove(i);
+      self.game.remove_player(i);
+      self.send_data_to_client(src_addr, &DataType::RemovePlayer(i).serialise());
+    }
+  }
+  
   pub fn remove_player(&mut self, src_addr: SocketAddr) {
     match self.clients.binary_search(&src_addr) {
       Ok(i) => {
@@ -64,7 +73,8 @@ impl Server {
         self.send_data_to_client(src_addr, &DataType::RemovePlayer(i).serialise());
       },
       Err(e) => {
-        println!("Error: {}", e);
+       // println!("Error: {}", e);
+        self.remove_all_players();
       }
     }
   }

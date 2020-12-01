@@ -25,14 +25,14 @@ impl TwinstickClient {
   pub fn new(ip: &str) -> TwinstickClient {
     println!("Attempting to connect to server {}", ip);
     let addrs = [
-      SocketAddr::from(([127, 0, 0, 1], 8010)),
-      SocketAddr::from(([127, 0, 0, 1], 8011)),
-      SocketAddr::from(([127, 0, 0, 1], 8012)),
-      SocketAddr::from(([127, 0, 0, 1], 8013)),
-      SocketAddr::from(([127, 0, 0, 1], 8014)),
-      SocketAddr::from(([127, 0, 0, 1], 8015)),
-      SocketAddr::from(([127, 0, 0, 1], 8016)),
-      SocketAddr::from(([127, 0, 0, 1], 8017)),
+      SocketAddr::from(([0, 0, 0, 0], 8010)),
+      SocketAddr::from(([0, 0, 0, 0], 8011)),
+      SocketAddr::from(([0, 0, 0, 0], 8012)),
+      SocketAddr::from(([0, 0, 0, 0], 8013)),
+      SocketAddr::from(([0, 0, 0, 0], 8014)),
+      SocketAddr::from(([0, 0, 0, 0], 8015)),
+      SocketAddr::from(([0, 0, 0, 0], 8016)),
+      SocketAddr::from(([0, 0, 0, 0], 8017)),
     ];
     let udp = UdpSocket::bind(&addrs[..]).unwrap();
     udp.set_nonblocking(true).unwrap();
@@ -54,7 +54,10 @@ impl TwinstickClient {
   
   pub fn send(&mut self) {
     let resposne = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
-    self.udp.send(&resposne).unwrap();
+    match self.udp.send(&resposne) {
+      Ok(_) => {},
+      Err(e) => {println!("{:?}",e);},
+    }
   }
   
   pub fn recieve(&mut self) -> Option<DataType> {
