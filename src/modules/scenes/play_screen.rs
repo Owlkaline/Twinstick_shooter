@@ -166,6 +166,11 @@ impl Scene for PlayScreen {
       }
     }
     
+    let mut char_idx: i32 = -1;
+    if self.character_idx.is_some() {
+      char_idx = self.character_idx.unwrap() as i32;
+    }
+    
     match self.client.recieve() {
       Some(d_type) => {
         match d_type {
@@ -176,8 +181,10 @@ impl Scene for PlayScreen {
             let pos = Vector3::new(p.x as f32, p.y as f32, p.z as f32);
             let rot = p.rot as f32;
             if idx < self.dynamic_objects.len() {
-              self.dynamic_objects[idx].set_position(pos);
-              self.dynamic_objects[idx].set_y_rotation(rot);
+              if !(char_idx != -1 && char_idx == idx as i32) {
+                self.dynamic_objects[idx].set_position(pos);
+                self.dynamic_objects[idx].set_y_rotation(rot);
+              }
             }
           },
           DataType::Game(game) => {
@@ -185,8 +192,10 @@ impl Scene for PlayScreen {
               let pos = Vector3::new(game.players()[i].x as f32, game.players()[i].y as f32, game.players()[i].z as f32);
               let rot = game.players()[i].rot as f32;
               if i < self.dynamic_objects.len() {
-                self.dynamic_objects[i].set_position(pos);
-                self.dynamic_objects[i].set_y_rotation(rot);
+                if !(char_idx != -1 && char_idx == i as i32) {
+                  self.dynamic_objects[i].set_position(pos);
+                  self.dynamic_objects[i].set_y_rotation(rot);
+                }
               } else {
                 self.add_player(game.players()[i].clone());
               }

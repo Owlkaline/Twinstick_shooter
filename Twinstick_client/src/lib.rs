@@ -25,14 +25,14 @@ impl TwinstickClient {
   pub fn new(ip: &str) -> TwinstickClient {
     println!("Attempting to connect to server {}", ip);
     let addrs = [
-      SocketAddr::from(([127, 0, 0, 1], 8010)),
+     /* SocketAddr::from(([127, 0, 0, 1], 8010)),
       SocketAddr::from(([127, 0, 0, 1], 8011)),
       SocketAddr::from(([127, 0, 0, 1], 8012)),
       SocketAddr::from(([127, 0, 0, 1], 8013)),
       SocketAddr::from(([127, 0, 0, 1], 8014)),
       SocketAddr::from(([127, 0, 0, 1], 8015)),
       SocketAddr::from(([127, 0, 0, 1], 8016)),
-      SocketAddr::from(([127, 0, 0, 1], 8017)),
+      SocketAddr::from(([127, 0, 0, 1], 8017)),*/
       SocketAddr::from(([0, 0, 0, 0], 8010)),
       SocketAddr::from(([0, 0, 0, 0], 8011)),
       SocketAddr::from(([0, 0, 0, 0], 8012)),
