@@ -15,7 +15,7 @@ pub struct Character {
 
 impl Character {
   pub fn new(pos: Vector3<f32>) -> Character {
-    let mut data = ObjectData::new(pos, "unit_cube".to_string()).dynamic_physics();
+    let mut data = ObjectData::new(pos, "main_char".to_string()).dynamic_physics();
     data.rotation.y = 180.0;
     
     Character {
@@ -37,9 +37,9 @@ impl GenericObject for Character {
     
   }
   
-  fn update(&mut self, width: f32, height: f32, keys: &MappedKeys, model_data: &Vec<ModelData>, delta_time: f32) {
+  fn update(&mut self, width: f32, height: f32, mouse: &Vector2<f32>, keys: &MappedKeys, model_data: &Vec<ModelData>, delta_time: f32) {
     //println!("Physics y: {:?}", Box::new(self as &mut ObjectPhysics).collision_detail());
-    
+    self.mut_data().model = "unit_cube".to_string();
     let mut close_vectors = [(0, 0.0), (0, 0.0), (0, 0.0)];
     
     let mut crnt_pos = Vector2::new(self.data().pos.x, self.data().pos.z);
@@ -63,19 +63,27 @@ impl GenericObject for Character {
       self.mut_data().rel_vel.z = 0.0;
     }
     
+    if keys.d_pressed() {
+      self.mut_data().rel_vel.x = SPEED;
+    } else if keys.a_pressed() {
+      self.mut_data().rel_vel.x = -SPEED;
+    } else {
+      self.mut_data().rel_vel.x = 0.0;
+    }
+    /*
     if keys.q_pressed() {
       self.mut_data().rel_vel.x = -SPEED;
     } else if keys.e_pressed() {
       self.mut_data().rel_vel.x = SPEED;
     } else {
       self.mut_data().rel_vel.x = 0.0;
-    }
-    
+    }*/
+    /*
     if keys.a_pressed() {
       self.mut_data().rotation.y += -ROT_SPEED*delta_time;
     } else if keys.d_pressed() {
       self.mut_data().rotation.y += ROT_SPEED*delta_time;
-    }
+    }*/
     
     if keys.i_pressed() {
       self.mut_data().vel.z = SPEED;
@@ -94,13 +102,18 @@ impl GenericObject for Character {
     }
     
     if keys.space_pressed() {
+      self.mut_data().grounded = false;
       self.mut_data().vel.y = 50.0;
   //    self.mut_data().pos.y += 1.0*delta_time;
     }
     
-    self.update_collision_data(model_data);
+    self.update_collision_data(model_data, None);
     //println!("CHARACTER: last known size: {:?}", self.data().last_known_size);
-    self.mut_data().vel.y -= 9.8;
+    
+    if !self.data().grounded {
+      self.mut_data().vel.y -= 9.8;
+    }
+    
     if self.data().vel.y < -9.8 {
       self.mut_data().vel.y = -9.8;
     }
@@ -115,10 +128,22 @@ impl GenericObject for Character {
       
     }*/
     
-    
-    if self.data().pos.y < terrain_height + self.data().last_known_size.y*0.5 {
-      self.mut_data().pos.y = terrain_height + self.data().last_known_size.y*0.5;
+    if self.data().pos.y < self.data().last_known_size.y*0.5 {//terrain_height + self.data().last_known_size.y*0.5 {
+      self.mut_data().pos.y = self.data().last_known_size.y*0.5; //terrain_height + self.data().last_known_size.y*0.5;
     }
+    /*
+    let dirx = (width*0.5-mouse.x)/width;
+    let diry = (height*0.5-mouse.y)/height;
+    println!("w: {}, h: {}, m_x: {}, m_y: {}, dirx: {}, diry: {}", width, height, mouse.x, mouse.y, dirx.cos(), diry.sin());
+    self.mut_data().rotation.y = math::to_degrees(dirx.cos()) + math::to_degrees(diry.sin());
+    */
+    
+    let look_vector = math::normalise_vector2(Vector2::new(width*0.5, height*0.5) - mouse);
+    let rot = look_vector.y.atan2(-look_vector.x);
+    //entity.set_rotation(math::to_degrees(rot)+90.0);
+    self.mut_data().rotation.y = math::to_degrees(rot)-90.0;
+    
+    self.mut_data().model = "main_char".to_string();
   }
   
   fn physics_update(&mut self, delta_time: f32) {

@@ -15,6 +15,9 @@ use crate::modules::collisions;
 use rand::prelude::ThreadRng;
 use rand::thread_rng;
 
+use twinstick_logic::*;
+use twinstick_client::*;
+
 const CAMERA_DEFAULT_X: f32 = 83.93359;
 const CAMERA_DEFAULT_Y: f32 = -128.62776;
 const CAMERA_DEFAULT_Z: f32 = 55.85842;
@@ -32,9 +35,10 @@ pub struct PlayScreen {
   dynamic_objects: Vec<Box<dyn GenericObject>>,
   static_objects: Vec<Box<dyn GenericObject>>,
   decorative_objects: Vec<Box<dyn GenericObject>>,
-  character_idx: usize,//Box<GenericObject>,
+  character_idx: Option<usize>,//Box<GenericObject>,
   zoom: f32,
   debug: bool,
+  client: TwinstickClient,
 }
 
 impl PlayScreen {
@@ -54,11 +58,11 @@ impl PlayScreen {
     let mut static_objects: Vec<Box<dyn GenericObject>> = Vec::new();
     let mut decorative_objects: Vec<Box<dyn GenericObject>> = Vec::new();
     
-    let mut char_scale = 0.5;//0.4;
-    let mut character = Character::new(Vector3::new(10.0, 20.0, 10.0));
-    character.set_scale(Vector3::new(char_scale, char_scale, char_scale));
+    //let mut char_scale = 0.5;//0.4;
+    //let mut character = Character::new(Vector3::new(0.0, 10.0, 0.0));
+   // character.set_scale(Vector3::new(char_scale, char_scale, char_scale));
     
-    dynamic_objects.push(Box::new(character));
+    //dynamic_objects.push(Box::new(character));
     /*
     let house_scale = 1.0;
     
@@ -66,30 +70,44 @@ impl PlayScreen {
       static_objects.push(Box::new(StaticObject::new(Vector3::new(0.0, 98.03922+4.8*house_scale*0.5 +4.7*2.0*house_scale*i as f32, 0.0), "house_two".to_string()).scale(Vector3::new(house_scale, house_scale, house_scale))));
     }*/
     
-    static_objects.push(Box::new(StaticObject::new(Vector3::new(0.0, 2.0, 0.0), "flat_ramp".to_string())));
-    static_objects.push(Box::new(StaticObject::new(Vector3::new(6.0, 6.0, 0.0), "flat_wall".to_string())));
-    static_objects.push(Box::new(StaticObject::new(Vector3::new(-10.0, 6.0, 0.0), "static_collision_test".to_string())));
-    static_objects.push(Box::new(StaticObject::new(Vector3::new(0.0, 6.0, 20.0), "floor_wall".to_string())));
+ //   static_objects.push(Box::new(StaticObject::new(Vector3::new(0.0, 2.0, 0.0), "flat_ramp".to_string())));
+  //  static_objects.push(Box::new(StaticObject::new(Vector3::new(6.0, 6.0, 0.0), "flat_wall".to_string())));
+  //  static_objects.push(Box::new(StaticObject::new(Vector3::new(-10.0, 6.0, 0.0), "static_collision_test".to_string())));
+    //static_objects.push(Box::new(StaticObject::new(Vector3::new(0.0, 6.0, 20.0), "floor_wall".to_string())));
     
-    let mut floor = StaticObject::new(Vector3::new(0.0, 0.0, 0.0), "floor".to_string()).scale(Vector3::new(1.0, 1.0, 1.0));
+  //  static_objects.push(Box::new(StaticObject::new(Vector3::new(0.0, 110.0, 0.0), "house_l".to_string())));
     
-    decorative_objects.push(Box::new(floor));
+   // let mut floor = StaticObject::new(Vector3::new(0.0, 0.0, 0.0), "floor".to_string()).scale(Vector3::new(1.0, 1.0, 1.0));
     
-    let mut ground_floor = StaticObject::new(Vector3::new(0.0, 88.0, 0.0), "unit_floor".to_string()).scale(Vector3::new(800.0, 10.0, 800.0));
-    let mut unit_floor = StaticObject::new(Vector3::new(50.0, 150.0, 50.0), "unit_floor".to_string()).scale(Vector3::new(10.0, 10.0, 10.0));
+    //decorative_objects.push(Box::new(floor));
+    
+    let mut ground_floor = StaticObject::new(Vector3::new(0.0, 2.0, 0.0), "unit_floor".to_string()).scale(Vector3::new(20.0, 10.0, 20.0));
+    let mut wall1 = StaticObject::new(Vector3::new(10.0, 4.0, 0.0), "unit_floor".to_string()).scale(Vector3::new(0.5, 40.0, 20.0));
+    let mut wall2 = StaticObject::new(Vector3::new(0.0, 4.0, -10.0), "unit_floor".to_string()).scale(Vector3::new(20.0, 40.0, 0.5));
+    let mut wall3 = StaticObject::new(Vector3::new(0.0, 4.0, 10.0), "unit_floor".to_string()).scale(Vector3::new(20.0, 40.0, 0.5));
+    //let mut groud_floor = StaticObject::new(Vector3::new(0.0, 2.0, 0.0), "unit_floor".to_string()).scale(Vector3::new(20.0, 10.0, 20.0));
+  /*  let mut unit_floor = StaticObject::new(Vector3::new(50.0, 150.0, 50.0), "unit_floor".to_string()).scale(Vector3::new(10.0, 10.0, 10.0));
     //let mut unit_floor1 = StaticObject::new(Vector3::new(55.0, 151.0, 50.0), "unit_floor".to_string()).scale(Vector3::new(10.0, 1.0, 10.0));
     let mut unit_floor2 = StaticObject::new(Vector3::new(60.0, 151.0, 50.0), "unit_floor".to_string()).scale(Vector3::new(10.0, 10.0, 10.0));
     let mut unit_floor3 = StaticObject::new(Vector3::new(65.0, 153.0, 50.0), "unit_floor".to_string()).scale(Vector3::new(10.0, 10.0, 10.0));
     
-    let mut hug_cube = StaticObject::new(Vector3::new(30.0, 110.0, 30.0), "hug_cube".to_string()).scale(Vector3::new(2.0, 2.0, 2.0));
+    let mut hug_cube = StaticObject::new(Vector3::new(30.0, 110.0, 30.0), "hug_cube".to_string())
+                                    .scale(Vector3::new(2.0, 2.0, 2.0))
+                                    .rotation(Vector3::new(0.0, 45.0, 0.0));*/
     
     static_objects.push(Box::new(ground_floor));
-    static_objects.push(Box::new(unit_floor));
+    static_objects.push(Box::new(wall1));
+    static_objects.push(Box::new(wall2));
+    static_objects.push(Box::new(wall3));
+    /*static_objects.push(Box::new(unit_floor));
     //static_objects.push(Box::new(unit_floor1));
     static_objects.push(Box::new(unit_floor2));
     static_objects.push(Box::new(unit_floor3));
     
-    static_objects.push(Box::new(hug_cube));
+    static_objects.push(Box::new(hug_cube));*/
+    let mut client = TwinstickClient::new("127.0.0.1:8008");
+    client.connect();
+    client.send();
     
     PlayScreen {
       data: SceneData::new(window_size, model_data),
@@ -99,10 +117,21 @@ impl PlayScreen {
       dynamic_objects,
       static_objects,
       decorative_objects,
-      character_idx: 0,//Box::new(character),
-      zoom: 5.0,
+      character_idx: None,
+      zoom: 16.0,
       debug: false,
+      client,
     }
+  }
+  
+  pub fn add_player(&mut self, p: Player) {
+    let rot = p.rot as f32;
+    let pos = Vector3::new(p.x as f32, p.y as f32, p.z as f32);
+    let mut char_scale = 0.5;
+    let mut character = Character::new(pos);
+    character.set_scale(Vector3::new(char_scale, char_scale, char_scale));
+    character.set_y_rotation(rot);
+    self.dynamic_objects.push(Box::new(character));
   }
 }
 
@@ -127,8 +156,75 @@ impl Scene for PlayScreen {
     let mut mouse = self.data().mouse_pos;
     let mut mouse_delta = self.last_mouse_pos - mouse;
     
+    if let Some(character_idx) = self.character_idx {
+      if character_idx < self.dynamic_objects.len() {
+        let pos = self.dynamic_objects[character_idx].position();
+        let rot = self.dynamic_objects[character_idx].rotation().y;
+        let mut p = Player::from_vec3(pos);
+        p.set_rotation(rot);
+        self.client.send_datatype(DataType::Player(p, character_idx));
+      }
+    }
+    
+    match self.client.recieve() {
+      Some(d_type) => {
+        match d_type {
+          DataType::PlayerNum(i) => {
+            self.character_idx = Some(i);
+          },
+          DataType::Player(p, idx) => {
+            let pos = Vector3::new(p.x as f32, p.y as f32, p.z as f32);
+            let rot = p.rot as f32;
+            if idx < self.dynamic_objects.len() {
+              self.dynamic_objects[idx].set_position(pos);
+              self.dynamic_objects[idx].set_y_rotation(rot);
+            }
+          },
+          DataType::Game(game) => {
+            for i in 0..game.players().len() {
+              let pos = Vector3::new(game.players()[i].x as f32, game.players()[i].y as f32, game.players()[i].z as f32);
+              let rot = game.players()[i].rot as f32;
+              if i < self.dynamic_objects.len() {
+                self.dynamic_objects[i].set_position(pos);
+                self.dynamic_objects[i].set_y_rotation(rot);
+              } else {
+                self.add_player(game.players()[i].clone());
+              }
+            }
+          },
+          DataType::AddPlayer(p) => {
+            self.add_player(p);
+            println!("New player connected!");
+          },
+          DataType::RemovePlayer(idx) => {
+            
+            self.dynamic_objects.remove(idx);
+            
+            let mut char_idx_is_less = false;
+            let mut char_idx = 0;
+            if let Some(c_idx) = &self.character_idx {
+              if idx < *c_idx {
+                char_idx_is_less = true;
+                char_idx = *c_idx;
+              }
+            }
+            if char_idx_is_less {
+              self.character_idx = Some(char_idx-1);
+            }
+          },
+          _ => {},
+        }
+      },
+      None => {
+        
+      }
+    }
+    
+    if self.data().keys.o_pressed() {
+      self.debug = false;
+    }
     if self.data().keys.p_pressed() {
-      self.debug = !self.debug;
+      self.debug = true;
     }
     
     { 
@@ -149,16 +245,28 @@ impl Scene for PlayScreen {
       };*/
       let keys = self.data().keys.clone();
       let model_data = self.data().model_data.clone();
-      for object in &mut self.dynamic_objects {
-        object.update(width, height, &keys, &model_data, delta_time);
-        object.physics_update(delta_time);
+      
+      if self.character_idx.is_some() {
+        let idx = self.character_idx.unwrap();
+        for i in 0..self.dynamic_objects.len() {
+          if i == idx {
+            self.dynamic_objects[i].update(width, height, &mouse, &keys, &model_data, delta_time);
+          }
+          self.dynamic_objects[i].physics_update(delta_time);
+        }
+        
+      } else {
+        for object in &mut self.dynamic_objects {
+         // object.update(width, height, &mouse, &keys, &model_data, delta_time);
+          object.physics_update(delta_time);
+        }
       }
       for object in &mut self.static_objects {
-        object.update(width, height, &keys, &model_data, delta_time);
+        object.update(width, height, &mouse, &keys, &model_data, delta_time);
         object.physics_update(delta_time);
       }
       for object in &mut self.decorative_objects {
-        object.update(width, height, &keys, &model_data, delta_time);
+        object.update(width, height, &mouse, &keys, &model_data, delta_time);
         object.physics_update(delta_time);
       }
     }
@@ -179,28 +287,27 @@ impl Scene for PlayScreen {
         self.zoom = 1.0;
       }
     }
-    
-    let character_pos = self.dynamic_objects[self.character_idx].position();
-    let character_front_vector = self.dynamic_objects[self.character_idx].front_vector();
-    self.camera.set_target(character_pos);
-    
-    let mut old_unit_vector = self.camera.get_front();
-    let mut goal_unit_vector = character_front_vector;
-    old_unit_vector.y = 0.0;
-    goal_unit_vector.y = 0.0;
-    let old_unit_vector = math::normalise_vector3(old_unit_vector);
-    let goal_unit_vector = math::normalise_vector3(goal_unit_vector);
-    let lerped_unit_vector = math::vec3_lerp(old_unit_vector, goal_unit_vector, 0.005);
-    
+   // println!("Zoom: {}", self.zoom);
+   
+    if let Some(character_idx) = self.character_idx {
+      if character_idx < self.dynamic_objects.len() {
+        let character_pos = self.dynamic_objects[character_idx].position();
+        let character_front_vector = self.dynamic_objects[character_idx].front_vector();
+        self.camera.set_target(character_pos);
+        
+        let mut old_unit_vector = self.camera.get_front();
+        let mut goal_unit_vector = character_front_vector;
+        old_unit_vector.y = 0.0;
+        goal_unit_vector.y = 0.0;
+        let old_unit_vector = math::normalise_vector3(old_unit_vector);
+        let goal_unit_vector = math::normalise_vector3(goal_unit_vector);
+        let lerped_unit_vector = math::vec3_lerp(old_unit_vector, goal_unit_vector, 0.005);
+        
 
-    let camera_lerp_pos = character_pos - lerped_unit_vector*self.zoom + Vector3::new(0.0, self.zoom, 0.0);//*self.zoom + Vector3::new(0.0, self.zoom, 0.0);//
-    self.camera.set_position(camera_lerp_pos);
-    self.camera.set_up(Vector3::new(0.0, -1.0, 0.0));
-    self.camera.set_front(math::normalise_vector3(character_pos-self.camera.get_position()));
-    
-    if self.data().left_mouse_dragged {
-      if self.last_mouse_pos != Vector2::new(-1.0, -1.0) {
-        self.camera.process_mouse_movement(mouse_delta.x, mouse_delta.y*-1.0);
+        let camera_lerp_pos = character_pos - lerped_unit_vector*self.zoom + Vector3::new(0.0, self.zoom, 0.0);//*self.zoom + Vector3::new(0.0, self.zoom, 0.0);//
+        self.camera.set_position(camera_lerp_pos);
+        self.camera.set_up(Vector3::new(0.0, -1.0, 0.0));
+        self.camera.set_front(math::normalise_vector3(character_pos-self.camera.get_position()));
       }
     }
     

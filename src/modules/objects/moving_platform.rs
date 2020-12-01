@@ -1,4 +1,4 @@
-use maat_graphics::cgmath::{Vector3};
+use maat_graphics::cgmath::{Vector2, Vector3};
 use maat_graphics::math;
 
 use crate::modules::objects::{GenericObject, ObjectData, CollisionType};
@@ -39,7 +39,7 @@ impl GenericObject for MovingPlatform {
     
   }
   
-  fn update(&mut self, width: f32, height: f32, keys: &MappedKeys, model_data: &Vec<ModelData>, delta_time: f32) {
+  fn update(&mut self, width: f32, height: f32, mouse: &Vector2<f32>, keys: &MappedKeys, model_data: &Vec<ModelData>, delta_time: f32) {
     if !self.reverse {
       self.mut_data().pos.y -= 1.0*delta_time;
       self.x_offset -= 1.0*delta_time;
@@ -54,7 +54,7 @@ impl GenericObject for MovingPlatform {
       }
     }
     
-    self.update_collision_data(model_data);
+    self.update_collision_data(model_data, None);
   }
   
   fn physics_update(&mut self, delta_time: f32) {

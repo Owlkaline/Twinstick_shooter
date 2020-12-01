@@ -77,6 +77,8 @@ impl Scene for LoadScreen {
       draw_calls.push(DrawCall::load_model("unit_cube1".to_string()));
       draw_calls.push(DrawCall::load_model("floor_wall".to_string()));
       draw_calls.push(DrawCall::load_model("static_collision_test".to_string()));
+      draw_calls.push(DrawCall::load_model("house_l".to_string()));
+      draw_calls.push(DrawCall::load_model("main_char".to_string()));
     }
     
     draw_calls.push(

@@ -1,5 +1,5 @@
 [package]
-name = "basic-3d-scene"
+name = "twinstick_interface"
 version = "0.0.1"
 authors = ["Lilith645 <lilith@inet-sys.com>"]
 edition = "2018"
@@ -10,3 +10,5 @@ maat_input_handler = { path = "./Maat-InputHandler/" }
 parking_lot = "0.9"
 rand = "0.7.0"
 rand_pcg = "0.2.0"
+twinstick_logic = { path = "./Twinstick_logic/" }
+twinstick_client = { path = "./Twinstick_client/" }

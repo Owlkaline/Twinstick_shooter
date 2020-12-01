@@ -49,7 +49,7 @@ fn fps_overlay(draw_calls: &mut Vec<DrawCall>, dimensions: Vector2<f32>, fps: f6
 }
 
 fn main() {
-  let (mut graphics, mut event_loop) = CoreMaat::new("TheTower".to_string(), (MAJOR) << 22 | (MINOR) << 12 | (PATCH), 1280.0, 1080.0, true);
+  let (mut graphics, mut event_loop) = CoreMaat::new("TheTower".to_string(), (MAJOR) << 22 | (MINOR) << 12 | (PATCH), 1280.0, 1080.0, false);
   //graphics.set_icon("./resources/textures/entities/Sun_glasses.png".to_string());
   graphics.preload_font(String::from("Arial"),
                         String::from("./resources/fonts/TimesNewRoman.png"),
@@ -57,14 +57,14 @@ fn main() {
   graphics.preload_texture(String::from("Logo"), 
                            String::from("./resources/textures/Logo.png"));
   
-  let floor = generate_terrain::generate_terrain_from_image("floor".to_string(), "./resources/models/terrain/heightmap.png".to_string());
+ // let floor = generate_terrain::generate_terrain_from_image("floor".to_string(), "./resources/models/terrain/heightmap.png".to_string());
   
   //let floor = generate_terrain::generate_flat_terrain();
   
   // background
   graphics.add_texture("background".to_string(), "./resources/textures/background.png".to_string());
   
-  graphics.add_terrain(floor);
+  //graphics.add_terrain(floor);
   graphics.add_model("house_one".to_string(), 
                        "./resources/models/house_one.glb".to_string());
   graphics.add_model("house_two".to_string(), 
@@ -93,11 +93,15 @@ fn main() {
                       "./resources/models/45DeToia.glb".to_string());
   graphics.add_model("floor_wall".to_string(),
                       "./resources/models/45DeDeux.glb".to_string());
+  graphics.add_model("house_l".to_string(),
+                      "./resources/models/HouseL.glb".to_string());
   
   graphics.add_model("unit_cube".to_string(),
                       "./resources/models/unit_cube.glb".to_string());
   graphics.add_model("unit_cube1".to_string(),
                       "./resources/models/unit_cube1.glb".to_string());
+  graphics.add_model("main_char".to_string(),
+                      "./resources/models/MainCharacter.glb".to_string());
   
   graphics.load_shaders();
   graphics.create_model_instance_buffer("house_two".to_string());
@@ -146,7 +150,7 @@ fn main() {
         last_time = time::Instant::now();
         total_delta_time += delta_time as f32;
         
-        if is_first_loop || !focused {
+        if is_first_loop /*|| !focused*/ {
           delta_time = 0.0;
           total_delta_time = 0.0;
           is_first_loop = false;

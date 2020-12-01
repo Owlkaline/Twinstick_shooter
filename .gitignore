@@ -30,3 +30,6 @@ Trephination.iml
 .idea
 *(copy).rs
 src/shaders/glsl/compile_shaders*
+TwinStick_client/target/
+TwinStick_logic/target/
+TwinStick_server/target/

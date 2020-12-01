@@ -1,4 +1,4 @@
-use maat_graphics::cgmath::{Vector3};
+use maat_graphics::cgmath::{Vector2, Vector3};
 use maat_graphics::math;
 
 use crate::modules::objects::{GenericObject, ObjectData, CollisionType};
@@ -18,6 +18,11 @@ impl StaticObject {
   
   pub fn scale(mut self, scale: Vector3<f32>) -> StaticObject {
     self.data.scale = scale;
+    self
+  }
+  
+  pub fn rotation(mut self, rot: Vector3<f32>) -> StaticObject {
+    self.data.rotation = rot;
     self
   }
 }
@@ -47,6 +52,7 @@ impl GenericObject for StaticObject {
             if static_pos.y+static_size.y*0.5 < dyn_pos.y-dyn_size.y*0.25 {
               // dynamic fell ontop
               dynamic_object.set_position(Vector3::new(object_pos.x, static_pos.y+static_size.y*0.5+dyn_size.y*0.51, object_pos.z));
+              dynamic_object.mut_data().grounded = true;
             } else if static_pos.y-static_size.y*0.25 > dyn_pos.y+dyn_size.y*0.5 {
               // dynamic coming from bototm
               dynamic_object.set_position(Vector3::new(object_pos.x, static_pos.y-static_size.y*0.5-dyn_size.y*0.51, object_pos.z));
@@ -102,8 +108,8 @@ impl GenericObject for StaticObject {
     }*/
   }
   
-  fn update(&mut self, width: f32, height: f32, keys: &MappedKeys, model_data: &Vec<ModelData>, delta_time: f32) {
-    self.update_collision_data(model_data);
+  fn update(&mut self, width: f32, height: f32, mouse: &Vector2<f32>, keys: &MappedKeys, model_data: &Vec<ModelData>, delta_time: f32) {
+    self.update_collision_data(model_data, None);
   }
   
   fn physics_update(&mut self, delta_time: f32) {
