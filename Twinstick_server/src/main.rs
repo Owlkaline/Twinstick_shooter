@@ -12,6 +12,8 @@ use std::str;
 
 use twinstick_logic::*;
 
+use chrono::Local;
+
 const BUFFER_SIZE: usize = 512;
 
 #[macro_use]
@@ -19,6 +21,11 @@ pub extern crate serde_derive;
 pub extern crate bincode;
 
 pub use bincode::{deserialize, serialize};
+
+fn log(msg: String) {
+  let date = Local::now();
+  println!("{}: {}", date.format("[%Y-%m-%d]%H:%M:%S"), msg);
+}
 
 pub struct Server {
   udp: UdpSocket,
@@ -29,7 +36,7 @@ pub struct Server {
 
 impl Server {
   pub fn new(ip: &str) -> Server {
-    println!("listening on udp port {}", ip);
+    log(format!("listening on udp port {}", ip));
     let mut udp = UdpSocket::bind(ip).unwrap();
     udp.set_nonblocking(true).unwrap();
     
@@ -56,7 +63,7 @@ impl Server {
   
   pub fn remove_player(&mut self, index: usize) {
     let src_addr = self.clients.remove(index);
-    println!("Removing client: {}", src_addr);
+    log(format!("Removing client: {}", src_addr));
     self.client_last_connection.remove(index);
     self.game.remove_player(index);
     self.send_data_to_clients(&DataType::RemovePlayer(index).serialise());
@@ -98,7 +105,7 @@ impl Server {
         let filled_buf = &mut buffer[..number_of_bytes];
         
         if !self.clients.contains(&src_addr) {
-          println!("New client connected: {}", src_addr);
+          log(format!("New client connected: {}", src_addr));
           self.add_player(src_addr);
           
          // println!("Data from {}: {:?}", src_addr, filled_buf);
