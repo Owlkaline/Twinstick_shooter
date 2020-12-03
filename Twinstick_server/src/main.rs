@@ -52,12 +52,17 @@ impl Server {
     &self.game
   }
   
+  pub fn update(&mut self, delta_time: f64) {
+    self.game.update(delta_time);
+  }
+  
   pub fn add_player(&mut self, src_addr: SocketAddr) {
     let index = self.clients.len();
     self.clients.push(src_addr);
     self.client_last_connection.push(time::Instant::now());
     self.game.add_player();
-    self.send_data_to_client(src_addr, &DataType::AddPlayer(self.game.players()[index].clone()).serialise());
+    
+    self.send_data_to_all_clients(&DataType::AddPlayer(self.game.players()[index].clone()).serialise());
     self.send_data_to_client(src_addr, &DataType::PlayerNum(index).serialise());
   }
   
@@ -66,7 +71,7 @@ impl Server {
     log(format!("Removing client: {}", src_addr));
     self.client_last_connection.remove(index);
     self.game.remove_player(index);
-    self.send_data_to_clients(&DataType::RemovePlayer(index).serialise());
+    self.send_data_to_all_clients(&DataType::RemovePlayer(index).serialise());
   }
   
   pub fn remove_player_from_addr(&mut self, src_addr: SocketAddr) {
@@ -81,13 +86,33 @@ impl Server {
     }
   }
   
-  pub fn send_data_to_clients(&mut self, buffer: &[u8]) {
+  pub fn send_data_to_all_clients(&mut self, buffer: &[u8]) {
     if self.clients.len() == 0 {
       return;
     }
     
     for i in 0..self.clients.len() {
-      self.udp.send_to(&buffer, self.clients[i]).unwrap();
+      self.send_data_to_client(self.clients[i], buffer);
+    }
+  }
+  
+  pub fn send_game_data_to_all_clients(&mut self) {
+    if self.clients.len() == 0 {
+      return;
+    }
+    
+    for i in 0..self.clients.len() {
+      self.send_data_to_client(self.clients[i], &DataType::Game(self.game.clone()).serialise());
+      self.send_data_to_client(self.clients[i], &DataType::PlayerNum(i).serialise());
+    }
+  }
+  
+  pub fn send_player_data_to_all_clients(&mut self) {
+    if self.clients.len() == 0 {
+      return;
+    }
+    
+    for i in 0..self.clients.len() {
       self.send_data_to_client(self.clients[i], &DataType::Player(self.game.players()[i].clone(), i).serialise());
       self.send_data_to_client(self.clients[i], &DataType::PlayerNum(i).serialise());
     }
@@ -106,22 +131,28 @@ impl Server {
         
         if !self.clients.contains(&src_addr) {
           log(format!("New client connected: {}", src_addr));
+          for i in 0..self.clients.len() {
+            self.send_data_to_client(src_addr, &DataType::AddPlayer(self.game.players()[i].clone()).serialise());
+          }
           self.add_player(src_addr);
-          
-         // println!("Data from {}: {:?}", src_addr, filled_buf);
-         // self.send_data_to_client(src_addr, &DataType::PlayerNum(self.clients.len()-1).serialise());
         } else {
+          let mut client_id = 0;
           match self.clients.binary_search(&src_addr) {
             Ok(i) => {
               self.client_last_connection[i] = time::Instant::now();
+              client_id = i;
             },
             _ => {}
           }
+          
           match DataType::deserialise(filled_buf) {
             Some(data_type) => {
               match data_type {
-                DataType::Player(p, idx) => {
-                  self.game.set_player(idx, p);
+                DataType::PlayerRotation(rot, idx) => {
+                  self.game.set_player_rotation(idx, rot);
+                },
+                DataType::Input(input) => {
+                  self.game.add_input(client_id, input);
                 },
                 DataType::Exit => {
                   self.remove_player_from_addr(src_addr);
@@ -172,18 +203,12 @@ fn main() {
     
     if tick >= FPS_60 {
       tick = 0.0;
-      let mut data = DataType::Game(server.game().clone()).serialise();
-      if data.len() > BUFFER_SIZE {
-        for p in 0..server.game().players().len() {
-          let mut data = DataType::Player(server.game().players()[p].clone(), p).serialise();
-          if data.len() > BUFFER_SIZE {
-            panic!("Buffer not large neough to send player information!");
-          }
-          
-          server.send_data_to_clients(&data);
-        }
+      server.update(FPS_60);
+      
+      if DataType::Game(server.game().clone()).serialise().len() > BUFFER_SIZE {
+        server.send_player_data_to_all_clients();
       } else {
-        server.send_data_to_clients(&data);
+        server.send_game_data_to_all_clients();
       }
     }
   }

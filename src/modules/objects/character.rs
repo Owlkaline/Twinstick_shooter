@@ -139,7 +139,7 @@ impl GenericObject for Character {
     */
     
     let look_vector = math::normalise_vector2(Vector2::new(width*0.5, height*0.5) - mouse);
-    let rot = look_vector.y.atan2(-look_vector.x);
+    let rot = look_vector.y.atan2(-look_vector.x) as f64;
     //entity.set_rotation(math::to_degrees(rot)+90.0);
     self.mut_data().rotation.y = math::to_degrees(rot)-90.0;
     

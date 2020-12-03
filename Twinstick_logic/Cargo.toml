@@ -10,4 +10,4 @@ edition = "2018"
 bincode = "1.3.1"
 serde = "1.0.111"
 serde_derive = "1.0.111"
-cgmath = "*"
+maat_graphics = { path = "../../Maat-Graphics/" }

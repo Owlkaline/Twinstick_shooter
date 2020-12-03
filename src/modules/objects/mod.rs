@@ -30,7 +30,7 @@ pub enum CollisionType {
 pub struct ObjectData {
   pos: Vector3<f32>,
   scale: Vector3<f32>,
-  rotation: Vector3<f32>,
+  rotation: Vector3<f64>,
   model: String,
   
   // velocity
@@ -132,7 +132,7 @@ pub trait GenericObject {
     self.data().pos
   }
   
-  fn rotation(&self) -> Vector3<f32> {
+  fn rotation(&self) -> Vector3<f64> {
     self.data().rotation
   }
   
@@ -153,10 +153,10 @@ pub trait GenericObject {
     let x = 1.0*math::to_radians(y_rot).sin();
     let z = 1.0*math::to_radians(y_rot).cos();
     
-    Vector3::new(x, 0.0, z)
+    Vector3::new(x as f32, 0.0, z as f32)
   }
   
-  fn set_y_rotation(&mut self, rot: f32) {
+  fn set_y_rotation(&mut self, rot: f64) {
     self.mut_data().rotation.y = rot;
   }
   
@@ -165,8 +165,8 @@ pub trait GenericObject {
     let y_rot = 180.0;//self.data().rotation.y;
     
     // parrallel house
-    self.mut_data().pos.x += self.data().rel_vel.x*math::to_radians(y_rot).cos() * delta_time;
-    self.mut_data().pos.z += self.data().rel_vel.z*math::to_radians(y_rot).cos() * delta_time;
+    self.mut_data().pos.x += self.data().rel_vel.x*math::to_radians(y_rot).cos() as f32 * delta_time;
+    self.mut_data().pos.z += self.data().rel_vel.z*math::to_radians(y_rot).cos() as f32 * delta_time;
   }
   
   // Moves along all axes based on rotation, naively
@@ -184,7 +184,7 @@ pub trait GenericObject {
     self.mut_data().scale = scale;
   }
   
-  fn set_rotation(&mut self, rotation: Vector3<f32>) {
+  fn set_rotation(&mut self, rotation: Vector3<f64>) {
     self.mut_data().rotation = rotation;
   }
   
@@ -192,14 +192,14 @@ pub trait GenericObject {
     if !debug {
       draw_calls.push(DrawCall::draw_model(self.data().pos,
                                            self.data().scale,
-                                           self.data().rotation,
+                                           Vector3::new(self.data().rotation.x as f32, self.data().rotation.y as f32, self.data().rotation.z as f32),
                                            self.data().model.to_string()));
-      if self.data().model == "unit_cube" {
+    /*  if self.data().model == "unit_cube" {
         draw_calls.push(DrawCall::draw_model(self.data().pos + Vector3::new(1.0, 0.0, 0.0),
                                              self.data().scale,
                                              self.data().rotation,
                                              "unit_cube1".to_string()));
-      }
+      }*/
     } else {
      for i in 0..self.data().collision_data.len() {
        match self.data().collision_data[i] {

@@ -21,7 +21,7 @@ impl StaticObject {
     self
   }
   
-  pub fn rotation(mut self, rot: Vector3<f32>) -> StaticObject {
+  pub fn rotation(mut self, rot: Vector3<f64>) -> StaticObject {
     self.data.rotation = rot;
     self
   }

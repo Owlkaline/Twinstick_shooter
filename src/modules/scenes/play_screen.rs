@@ -81,10 +81,10 @@ impl PlayScreen {
     
     //decorative_objects.push(Box::new(floor));
     
-    let mut ground_floor = StaticObject::new(Vector3::new(0.0, 2.0, 0.0), "unit_floor".to_string()).scale(Vector3::new(20.0, 10.0, 20.0));
-    let mut wall1 = StaticObject::new(Vector3::new(10.0, 4.0, 0.0), "unit_floor".to_string()).scale(Vector3::new(0.5, 40.0, 20.0));
-    let mut wall2 = StaticObject::new(Vector3::new(0.0, 4.0, -10.0), "unit_floor".to_string()).scale(Vector3::new(20.0, 40.0, 0.5));
-    let mut wall3 = StaticObject::new(Vector3::new(0.0, 4.0, 10.0), "unit_floor".to_string()).scale(Vector3::new(20.0, 40.0, 0.5));
+    let mut ground_floor = StaticObject::new(Vector3::new(0.0, 5.0, 0.0), "unit_floor".to_string()).scale(Vector3::new(10.0, 0.5, 10.0));
+   // let mut left_wall = StaticObject::new(Vector3::new(9.5, 5.0, 0.0), "unit_cube".to_string()).scale(Vector3::new(1.0, 40.0, 20.0));
+   // let mut back_wall = StaticObject::new(Vector3::new(0.0, 8.0, -10.0), "unit_cube".to_string()).scale(Vector3::new(20.0, 40.0, 0.5));
+   // let mut front_wall = StaticObject::new(Vector3::new(0.0, 4.0, 10.0), "unit_cube".to_string()).scale(Vector3::new(20.0, 40.0, 0.5));
     //let mut groud_floor = StaticObject::new(Vector3::new(0.0, 2.0, 0.0), "unit_floor".to_string()).scale(Vector3::new(20.0, 10.0, 20.0));
   /*  let mut unit_floor = StaticObject::new(Vector3::new(50.0, 150.0, 50.0), "unit_floor".to_string()).scale(Vector3::new(10.0, 10.0, 10.0));
     //let mut unit_floor1 = StaticObject::new(Vector3::new(55.0, 151.0, 50.0), "unit_floor".to_string()).scale(Vector3::new(10.0, 1.0, 10.0));
@@ -96,16 +96,16 @@ impl PlayScreen {
                                     .rotation(Vector3::new(0.0, 45.0, 0.0));*/
     
     static_objects.push(Box::new(ground_floor));
-    static_objects.push(Box::new(wall1));
-    static_objects.push(Box::new(wall2));
-    static_objects.push(Box::new(wall3));
+   // static_objects.push(Box::new(left_wall));
+   // static_objects.push(Box::new(back_wall));
+   // static_objects.push(Box::new(front_wall));
     /*static_objects.push(Box::new(unit_floor));
     //static_objects.push(Box::new(unit_floor1));
     static_objects.push(Box::new(unit_floor2));
     static_objects.push(Box::new(unit_floor3));
     
     static_objects.push(Box::new(hug_cube));*/
-    let mut client = TwinstickClient::new("45.77.234.65:8008");//"127.0.0.1:8008");
+    let mut client = TwinstickClient::new("127.0.0.1:8008");//"45.77.234.65:8008");//"127.0.0.1:8008");
     client.connect();
     client.send();
     
@@ -124,8 +124,20 @@ impl PlayScreen {
     }
   }
   
+  pub fn update_player(&mut self, p: Player, i: usize) {
+    if i > self.dynamic_objects.len() {
+      return;
+    }
+    
+    let rot = p.rot;
+    let pos = Vector3::new(p.x as f32, p.y as f32, p.z as f32);
+    
+    self.dynamic_objects[i].set_position(pos);
+    self.dynamic_objects[i].set_y_rotation(rot);
+  }
+  
   pub fn add_player(&mut self, p: Player) {
-    let rot = p.rot as f32;
+    let rot = p.rot;
     let pos = Vector3::new(p.x as f32, p.y as f32, p.z as f32);
     let mut char_scale = 0.5;
     let mut character = Character::new(pos);
@@ -156,19 +168,16 @@ impl Scene for PlayScreen {
     let mut mouse = self.data().mouse_pos;
     let mut mouse_delta = self.last_mouse_pos - mouse;
     
-    if let Some(character_idx) = self.character_idx {
-      if character_idx < self.dynamic_objects.len() {
-        let pos = self.dynamic_objects[character_idx].position();
-        let rot = self.dynamic_objects[character_idx].rotation().y;
-        let mut p = Player::from_vec3(pos);
-        p.set_rotation(rot);
-        self.client.send_datatype(DataType::Player(p, character_idx));
-      }
-    }
-    
     let mut char_idx: i32 = -1;
     if self.character_idx.is_some() {
       char_idx = self.character_idx.unwrap() as i32;
+    }
+    
+    if char_idx != -1 {
+      if char_idx < self.dynamic_objects.len() as i32 {
+        let rot = self.dynamic_objects[char_idx as usize].rotation().y;
+        self.client.send_datatype(DataType::PlayerRotation(rot, char_idx as usize));
+      }
     }
     
     match self.client.recieve() {
@@ -178,27 +187,11 @@ impl Scene for PlayScreen {
             self.character_idx = Some(i);
           },
           DataType::Player(p, idx) => {
-            let pos = Vector3::new(p.x as f32, p.y as f32, p.z as f32);
-            let rot = p.rot as f32;
-            if idx < self.dynamic_objects.len() {
-              if !(char_idx != -1 && char_idx == idx as i32) {
-                self.dynamic_objects[idx].set_position(pos);
-                self.dynamic_objects[idx].set_y_rotation(rot);
-              }
-            }
+            self.update_player(p, idx);
           },
           DataType::Game(game) => {
             for i in 0..game.players().len() {
-              let pos = Vector3::new(game.players()[i].x as f32, game.players()[i].y as f32, game.players()[i].z as f32);
-              let rot = game.players()[i].rot as f32;
-              if i < self.dynamic_objects.len() {
-                if !(char_idx != -1 && char_idx == i as i32) {
-                  self.dynamic_objects[i].set_position(pos);
-                  self.dynamic_objects[i].set_y_rotation(rot);
-                }
-              } else {
-                self.add_player(game.players()[i].clone());
-              }
+              self.update_player(game.players()[i].clone(), i);
             }
           },
           DataType::AddPlayer(p) => {
@@ -236,53 +229,45 @@ impl Scene for PlayScreen {
       self.debug = true;
     }
     
-    { 
-      
-      /*
-      let model_sizes = self.data().model_data.clone().into_iter().map(|md| (md.name(), md.size())).collect::<Vec<(String, Vector3<f32>)>>();
-     // let terrain_data = self.data().model_data.clone().into_iter().filter(|x| x.is_terrain_data()).map(|md| md.get_terrain_data()).collect::<Vec<(String, Vec<Vec<f32>>)>>();
-      let terrain_data = {
-        let mut terrain_data = Vec::new();
-        for i in 0..self.data().model_data.len() {
-       //   println!("Name: {}, Num Collision: {}", self.data().model_data[i].name(), self.data().model_data[i].num_collision_info());
-          if self.data().model_data[i].is_terrain_data() {
-            terrain_data.push(self.data().model_data[i].get_terrain_data());
-          }
-        }
-        //println!("Terrain length: {}", terrain_data.len());
-        terrain_data
-      };*/
-      let keys = self.data().keys.clone();
-      let model_data = self.data().model_data.clone();
-      
-      if self.character_idx.is_some() {
-        let idx = self.character_idx.unwrap();
-        for i in 0..self.dynamic_objects.len() {
-          if i == idx {
-            self.dynamic_objects[i].update(width, height, &mouse, &keys, &model_data, delta_time);
-          }
-          self.dynamic_objects[i].physics_update(delta_time);
-        }
-        
-      } else {
-        for object in &mut self.dynamic_objects {
-         // object.update(width, height, &mouse, &keys, &model_data, delta_time);
-          object.physics_update(delta_time);
-        }
+    if self.data().keys.w_pressed() {
+      self.client.send_datatype(DataType::Input(Input::W));
+    } else if self.data().keys.s_pressed() {
+      self.client.send_datatype(DataType::Input(Input::S));
+    }
+    
+    if self.data().keys.d_pressed() {
+      self.client.send_datatype(DataType::Input(Input::D));
+    } else if self.data().keys.a_pressed() {
+      self.client.send_datatype(DataType::Input(Input::A));
+    }
+    
+    if self.data().keys.space_pressed() {
+      self.client.send_datatype(DataType::Input(Input::Space));
+    }
+    
+    let keys = self.data().keys.clone();
+    let model_data = self.data().model_data.clone();
+    
+    for i in 0..self.dynamic_objects.len() {
+      if i as i32 == char_idx {
+       // self.dynamic_objects[i].update(width, height, &mouse, &keys, &model_data, delta_time);
       }
-      for object in &mut self.static_objects {
-        object.update(width, height, &mouse, &keys, &model_data, delta_time);
-        object.physics_update(delta_time);
-      }
-      for object in &mut self.decorative_objects {
-        object.update(width, height, &mouse, &keys, &model_data, delta_time);
-        object.physics_update(delta_time);
-      }
+      self.dynamic_objects[i].physics_update(delta_time);
+    }
+    
+    for object in &mut self.static_objects {
+      object.update(width, height, &mouse, &keys, &model_data, delta_time);
+      object.physics_update(delta_time);
+    }
+    
+    for object in &mut self.decorative_objects {
+      object.update(width, height, &mouse, &keys, &model_data, delta_time);
+      object.physics_update(delta_time);
     }
     
     // Do Collisions
-    collisions::calculate_collisions(&mut self.dynamic_objects,
-                                     &mut self.static_objects);
+   // collisions::calculate_collisions(&mut self.dynamic_objects,
+    //                                 &mut self.static_objects);
     
     if self.data().scroll_delta < 0.0 {
       self.zoom += CAMERA_ZOOM_SPEED*self.zoom*self.zoom *delta_time + 0.01;
@@ -296,7 +281,6 @@ impl Scene for PlayScreen {
         self.zoom = 1.0;
       }
     }
-   // println!("Zoom: {}", self.zoom);
    
     if let Some(character_idx) = self.character_idx {
       if character_idx < self.dynamic_objects.len() {
@@ -338,7 +322,5 @@ impl Scene for PlayScreen {
     for object in &self.decorative_objects {
       object.draw(draw_calls, self.debug);
     }
-    
-    
   }
 }
