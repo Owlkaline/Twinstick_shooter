@@ -199,6 +199,7 @@ fn main() {
   let mut last_time = time::Instant::now();
   
   let mut tick = 0.0;
+  let mut counter = 0;
   
   loop {
     delta_time = last_time.elapsed().subsec_nanos() as f64 / 1000000000.0 as f64;
@@ -211,7 +212,12 @@ fn main() {
     if tick >= FPS_60 {
       tick = 0.0;
       server.update(FPS_60);
-      server.send_player_data_to_all_clients();
+      
+      counter += 1;
+      if counter >= 6 {
+        counter = 0;
+        server.send_player_data_to_all_clients();
+      }
     }
   }
 }
