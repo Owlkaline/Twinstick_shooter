@@ -15,19 +15,16 @@ use crate::modules::scenes::LoadScreen;
 use maat_graphics::graphics::CoreRender;
 use maat_graphics::CoreMaat;
 use maat_graphics::DrawCall;
-use maat_graphics::generate_terrain;
 
 use cgmath::{Vector2, Vector4};
 
 use std::time;
 
-use crate::maat_graphics::winit::platform::desktop::EventLoopExtDesktop;
-
 const MAJOR: u32 = 0;
 const MINOR: u32 = 0;
 const PATCH: u32 = 1;
 
-const DELTA_STEP: f32 = 0.001;
+const DELTA_STEP: f64 = 0.001;
 
 fn benchmark(draw_calls: &mut Vec<DrawCall>, dimensions: Vector2<f32>) {
   draw_calls.push(DrawCall::draw_text_basic(Vector2::new(dimensions.x - 80.0, 15.0), 
@@ -49,7 +46,7 @@ fn fps_overlay(draw_calls: &mut Vec<DrawCall>, dimensions: Vector2<f32>, fps: f6
 }
 
 fn main() {
-  let (mut graphics, mut event_loop) = CoreMaat::new("TheTower".to_string(), (MAJOR) << 22 | (MINOR) << 12 | (PATCH), 1280.0, 1080.0, false);
+  let (mut graphics, event_loop) = CoreMaat::new("TheTower".to_string(), (MAJOR) << 22 | (MINOR) << 12 | (PATCH), 1280.0, 1080.0, false);
   //graphics.set_icon("./resources/textures/entities/Sun_glasses.png".to_string());
   graphics.preload_font(String::from("Arial"),
                         String::from("./resources/fonts/TimesNewRoman.png"),
@@ -111,18 +108,16 @@ fn main() {
   
   let mut draw_calls: Vec<DrawCall> = Vec::with_capacity(100);
   
-  let mut delta_time = 0.0;
+  //let mut delta_time = 0.0;
   let mut last_time = time::Instant::now();
   
-  let mut done = false;
   let mut dimensions = Vector2::new(1.0, 1.0);
   
   let mut frame_counter = 0;
   let mut fps_timer = 0.0;
   let mut last_fps = 0.0;
   
-  let mut total_delta_time = 0.0;
-  let mut count = 0;
+  let mut total_delta_time: f64 = 0.0;
   
   let mut is_first_loop = true;
   
@@ -146,9 +141,9 @@ fn main() {
          graphics.force_swapchain_recreate();
       },
       winit::event::Event::RedrawEventsCleared => { // Update function / draw area / do everything here plz
-        delta_time = last_time.elapsed().subsec_nanos() as f64 / 1000000000.0 as f64;
+        let mut delta_time = last_time.elapsed().subsec_nanos() as f64 / 1000000000.0 as f64;
         last_time = time::Instant::now();
-        total_delta_time += delta_time as f32;
+        total_delta_time += delta_time;//last_time.elapsed().subsec_nanos() as f64 / 1000000000.0 as f64;
         
         if is_first_loop /*|| !focused*/ {
           delta_time = 0.0;
@@ -183,9 +178,21 @@ fn main() {
         let delta_steps = (total_delta_time / DELTA_STEP).floor() as usize;
         
         for _ in 0..delta_steps {
-          game.update(DELTA_STEP);
+          game.update(DELTA_STEP as f32);
           total_delta_time -= DELTA_STEP;
         }
+        
+        //if total_delta_time > FPS_60 {
+        //  game.update(FPS_60 as f32);
+       //   total_delta_time -= FPS_60;
+        //}
+        /*
+        let delta_steps = (total_delta_time / FPS_60).floor() as usize;
+        
+        for _ in 0..delta_steps {
+          game.update(FPS_60 as f32);
+          total_delta_time -= FPS_60;
+        }*/
         
         game.draw(&mut draw_calls);
         benchmark(&mut draw_calls, dimensions);
@@ -210,7 +217,9 @@ fn main() {
         game.end_frame();
       },
       random_event => {
-        game.handle_event(random_event);
+        if focused {
+          game.handle_event(random_event);
+        }
       },
     }
   });

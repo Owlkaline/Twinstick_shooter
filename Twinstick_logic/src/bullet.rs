@@ -7,7 +7,7 @@ pub struct Bullet {
 }
 
 impl Bullet {
-  pub fn new(pos: Vector3, size: Vector3, rotation: f64, model: String) -> Bullet {
+  pub fn _new(pos: Vector3, size: Vector3, rotation: f64, model: String) -> Bullet {
     let mut data = ObjectData::new(pos, size, model);
     data.rotation.y = rotation;
     
@@ -26,11 +26,11 @@ impl GenericObject for Bullet {
     &mut self.data
   }
   
-  fn collided_with_dynamic_object(&self, dynamic_object: &mut Box<GenericObject>) {
+  fn collided_with_dynamic_object(&self, _dynamic_object: &mut Box<dyn GenericObject>) {
     
   }
   
-  fn update(&mut self, delta_time: f64) {
+  fn update(&mut self, _delta_time: f64) {
     
   }
   

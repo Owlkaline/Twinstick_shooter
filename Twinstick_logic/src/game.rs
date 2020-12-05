@@ -1,6 +1,4 @@
-use crate::SPEED;
-
-use crate::{Vector3, Section, Character, Input, GenericObject, StaticObject, SendStaticObject};
+use crate::{Vector3, Section, Character, Input, GenericObject};
 use crate::collisions;
 
 pub struct TwinstickGame {
@@ -11,7 +9,7 @@ pub struct TwinstickGame {
 impl TwinstickGame {
   pub fn new() -> TwinstickGame {
     
-    let mut section_size = 20.0;
+    let section_size = 20.0;
     
     // -x = right
     // +x = left
@@ -52,11 +50,11 @@ impl TwinstickGame {
     }
   }
   
-  pub fn players(&self) -> &Vec<Box<GenericObject>> {
+  pub fn players(&self) -> &Vec<Box<dyn GenericObject>> {
     &self.players
   }
   
-  pub fn static_objects(&self) -> &Vec<Box<GenericObject>> {
+  pub fn static_objects(&self) -> &Vec<Box<dyn GenericObject>> {
     &self.static_objects
   }
   

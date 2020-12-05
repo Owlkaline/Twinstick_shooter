@@ -1,13 +1,10 @@
 use maat_graphics::math;
-use maat_graphics::math::Vector3Math;
 use maat_graphics::DrawCall;
 use maat_graphics::ModelData;
 use maat_graphics::camera::PerspectiveCamera;
-use maat_graphics::camera::PerspectiveCameraDirection;
 
 use crate::modules::scenes::Scene;
 use crate::modules::scenes::SceneData;
-use crate::modules::scenes::{LoadScreen};
 use crate::cgmath::{Vector2, Vector3 as cgVector3, Vector4};
 
 //use crate::modules::objects::{Character, StaticObject, GenericObject, MovingPlatform};
@@ -15,8 +12,8 @@ use crate::cgmath::{Vector2, Vector3 as cgVector3, Vector4};
 use rand::prelude::ThreadRng;
 use rand::thread_rng;
 
-use twinstick_logic::{TwinstickGame, Character, Input, DataType, GenericObject, 
-                      Vector3, StaticObject, collisions, SendDynamicObject, SendDynamicObjectUpdate};
+use twinstick_logic::{Character, Input, DataType, GenericObject, 
+                      Vector3, collisions, SendDynamicObject, SendDynamicObjectUpdate};
 use twinstick_client::{TwinstickClient};
 
 const CAMERA_DEFAULT_X: f32 = 83.93359;
@@ -30,7 +27,7 @@ const CAMERA_ZOOM_SPEED: f32 = 0.05; // percentage per second
 
 pub struct PlayScreen {
   data: SceneData,
-  rng: ThreadRng,
+  _rng: ThreadRng,
   camera: PerspectiveCamera,
   last_mouse_pos: Vector2<f32>,
   players: Vec<Box<dyn GenericObject>>,
@@ -39,13 +36,12 @@ pub struct PlayScreen {
   //decorative_objects: Vec<Box<dyn GenericObject>>,
   character_idx: Option<usize>,
   zoom: f32,
-  debug: bool,
   client: TwinstickClient,
 }
 
 impl PlayScreen {
   pub fn new(window_size: Vector2<f32>, model_data: Vec<ModelData>) -> PlayScreen {
-    let mut rng = thread_rng();
+    let rng = thread_rng();
     
     let mut camera = PerspectiveCamera::default_vk();
     camera.set_position(cgVector3::new(CAMERA_DEFAULT_X, 
@@ -56,9 +52,9 @@ impl PlayScreen {
     camera.set_move_speed(CAMERA_DEFAULT_SPEED);
     camera.set_target(cgVector3::new(0.0, 0.0, 0.0));
     
-    let mut players: Vec<Box<dyn GenericObject>> = Vec::new();
+    let players: Vec<Box<dyn GenericObject>> = Vec::new();
     //let mut dynamic_objects: Vec<Box<dyn GenericObject>> = Vec::new();
-    let mut static_objects = Vec::new();
+    let static_objects = Vec::new();
     //let mut decorative_objects: Vec<Box<dyn GenericObject>> = Vec::new();
     
     //let mut char_scale = 0.5;//0.4;
@@ -108,13 +104,13 @@ impl PlayScreen {
     static_objects.push(Box::new(unit_floor3));
     
     static_objects.push(Box::new(hug_cube));*/
-    let mut client = TwinstickClient::new("45.77.234.65:8008");//"127.0.0.1:8008");
+    let mut client = TwinstickClient::new("127.0.0.1:8008");//"45.77.234.65:8008");//"127.0.0.1:8008");
     client.connect();
     client.send();
     
     PlayScreen {
       data: SceneData::new(window_size, model_data),
-      rng,
+      _rng: rng,
       camera,
       last_mouse_pos: Vector2::new(-1.0, -1.0),
       players,
@@ -123,7 +119,6 @@ impl PlayScreen {
      // decorative_objects,
       character_idx: None,
       zoom: 16.0,
-      debug: false,
       client,
     }
   }
@@ -209,7 +204,7 @@ impl Scene for PlayScreen {
     &mut self.data
   }
   
-  fn future_scene(&mut self, window_size: Vector2<f32>) -> Box<dyn Scene> {
+  fn future_scene(&mut self, _window_size: Vector2<f32>) -> Box<dyn Scene> {
     let dim = self.data().window_dim;
     Box::new(PlayScreen::new(dim, self.data.model_data.clone()))
   }
@@ -218,8 +213,8 @@ impl Scene for PlayScreen {
     let dim = self.data().window_dim;
     let (width, height) = (dim.x as f32, dim.y as f32);
     
-    let mut mouse = self.data().mouse_pos;
-    let mut mouse_delta = self.last_mouse_pos - mouse;
+    let mouse = self.data().mouse_pos;
+    //let mut mouse_delta = self.last_mouse_pos - mouse;
     
     if self.client.disconnected() {
       self.client.connect();
@@ -245,7 +240,7 @@ impl Scene for PlayScreen {
             self.character_idx = Some(i);
           },
           DataType::StaticObject(object) => {
-            let mut object = object.to_static_object();
+            let object = object.to_static_object();
             self.static_objects.push(Box::new(object));
           },
           DataType::Player(p, idx) => {
@@ -278,8 +273,8 @@ impl Scene for PlayScreen {
     self.process_player_input(char_idx);
     self.update_player_rotation(char_idx, width, height, mouse);
     
-    let keys = self.data().keys.clone();
-    let model_data = self.data().model_data.clone();
+    //let keys = self.data().keys.clone();
+    //let model_data = self.data().model_data.clone();
     
     for i in 0..self.players.len() {
       self.players[i].update(delta_time as f64);
@@ -349,6 +344,16 @@ impl Scene for PlayScreen {
     
     for object in &self.static_objects {
       object.draw(draw_calls);
+    }
+    
+    if self.client.disconnected() {
+      draw_calls.push(
+        DrawCall::draw_text_basic_centered(Vector2::new(width*0.5, height*0.5), 
+                                Vector2::new(128.0, 128.0),
+                                Vector4::new(1.0, 1.0, 1.0, 1.0),
+                                String::from("Attempting to connect to server..."),
+                                String::from("Arial"))
+      );
     }
     
     /*

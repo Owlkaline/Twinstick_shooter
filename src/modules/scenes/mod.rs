@@ -10,7 +10,7 @@ use maat_graphics::winit;
 use maat_graphics::winit::event::MouseScrollDelta::LineDelta;
 use maat_graphics::winit::event::MouseScrollDelta::PixelDelta;
 
-use maat_graphics::cgmath::{Vector2, Vector3};
+use maat_graphics::cgmath::Vector2;
 
 pub use self::load_screen::LoadScreen;
 pub use self::play_screen::PlayScreen;
@@ -36,8 +36,8 @@ pub struct SceneData {
   pub window_resized: bool,
   pub controller: Controller,
   pub model_data: Vec<ModelData>,
-  models_to_load: Vec<(String, String)>,
-  models_to_unload: Vec<String>,
+  _models_to_load: Vec<(String, String)>,
+  _models_to_unload: Vec<String>,
   fps_last_frame: f64,
   should_resize_window: Option<(Vector2<f32>, bool)>,
 }
@@ -62,8 +62,8 @@ impl SceneData {
       window_resized: false,
       controller: Controller::new(),
       model_data,
-      models_to_load: Vec::new(),
-      models_to_unload: Vec::new(),
+      _models_to_load: Vec::new(),
+      _models_to_unload: Vec::new(),
       fps_last_frame: 0.0,
       should_resize_window: None,
     }
@@ -88,8 +88,8 @@ impl SceneData {
       window_resized: false,
       controller: Controller::new(),
       model_data: Vec::new(),
-      models_to_load: Vec::new(),
-      models_to_unload: Vec::new(),
+      _models_to_load: Vec::new(),
+      _models_to_unload: Vec::new(),
       fps_last_frame: 0.0,
       should_resize_window: None,
     }
@@ -136,17 +136,17 @@ pub trait Scene {
   }
   
   fn get_models_to_load(&mut self) -> Vec<(String, String)> {
-    let models = self.data().models_to_load.clone();
-    self.mut_data().models_to_load = Vec::new();
+    let models = self.data()._models_to_load.clone();
+    self.mut_data()._models_to_load = Vec::new();
     
     models
   }
   
   fn get_models_to_unload(&mut self) -> Vec<String> {
     let mut idxs = Vec::new();
-    for i in 0..self.data().models_to_unload.len() {
+    for i in 0..self.data()._models_to_unload.len() {
       for j in 0..self.data().model_data.len() {
-        if self.data().model_data[j].name() == self.data().models_to_unload[i] {
+        if self.data().model_data[j].name() == self.data()._models_to_unload[i] {
           idxs.push(j);
         }
       }
@@ -156,8 +156,8 @@ pub trait Scene {
       self.mut_data().model_data.remove(idxs[i]-i);
     }
     
-    let models = self.data().models_to_unload.clone();
-    self.mut_data().models_to_unload = Vec::new();
+    let models = self.data()._models_to_unload.clone();
+    self.mut_data()._models_to_unload = Vec::new();
     
     models
   }
@@ -175,7 +175,7 @@ pub trait Scene {
     self.mut_data().model_data.push(model_data);
   }
   
-  fn handle_event(&mut self, mut event: winit::event::Event<()>) {
+  fn handle_event(&mut self, event: winit::event::Event<()>) {
     match event {
       winit::event::Event::WindowEvent { event: w_event, .. } => {
         match w_event {

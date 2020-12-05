@@ -2,11 +2,8 @@ use std::str;
 use std::net::{UdpSocket, SocketAddr};
 
 use std::io;
-use std::time;
 
 use twinstick_logic::{BUFFER_SIZE, DataType};
-
-//const BUFFER_SIZE: usize = 512;
 
 pub struct TwinstickClient {
   udp: UdpSocket,
@@ -64,7 +61,7 @@ impl TwinstickClient {
       Ok(_) => {
         self.disconnected = false;
       },
-      Err(e) => {
+      Err(_e) => {
         self.disconnected = true;
       },
     }
@@ -75,7 +72,7 @@ impl TwinstickClient {
       return;
     }
     
-    self.udp.send(&data_type.serialise());
+    let _ = self.udp.send(&data_type.serialise()).is_ok();
   }
   
   pub fn send(&mut self) {
@@ -86,7 +83,7 @@ impl TwinstickClient {
     let resposne = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
     match self.udp.send(&resposne) {
       Ok(_) => {},
-      Err(e) => { self.disconnected = true; }, //println!("{:?}",e);},
+      Err(_e) => { self.disconnected = true; }, //println!("{:?}",e);},
     }
   }
   
@@ -98,8 +95,7 @@ impl TwinstickClient {
     let mut buffer = [0; BUFFER_SIZE];
     
     match self.udp.recv_from(&mut buffer) {
-      Ok((number_of_bytes, src_addr)) => {
-      //  println!("bytes: {}, addr: {}", number_of_bytes, src_addr);
+      Ok((number_of_bytes, _src_addr)) => {
         let filled_buf = &mut buffer[..number_of_bytes];
         return DataType::deserialise(filled_buf);
       },
@@ -108,7 +104,7 @@ impl TwinstickClient {
             // via platform-specific APIs such as epoll or IOCP
             //wait_for_fd();
       },
-      Err(e) => self.disconnected = true, //panic!("encountered IO error: {}", e),
+      Err(_e) => self.disconnected = true, //panic!("encountered IO error: {}", e),
     }
     
     None
@@ -124,10 +120,11 @@ impl TwinstickClient {
   }
 }
 
+/*
 fn main() {
   let mut c = TwinstickClient::new("127.0.0.1:8008");
   
-  let mut delta_time: f64 = 0.0;
+  let mut delta_time: f64;
   let mut last_time = time::Instant::now();
   
   let mut tick = 0.0;
@@ -153,4 +150,4 @@ fn main() {
     
     c.recieve();
   }
-}
+}*/

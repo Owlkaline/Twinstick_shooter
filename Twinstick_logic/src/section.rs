@@ -21,9 +21,9 @@ impl Section {
     }
   }
   
-  pub fn static_objects(&mut self) -> Vec<Box<GenericObject>> {
+  pub fn static_objects(&mut self) -> Vec<Box<dyn GenericObject>> {
     //&self.objects
-    let objects = self.objects.drain(..).map(|s| Box::new(s) as Box<GenericObject>).collect::<Vec<Box<GenericObject>>>();
+    let objects = self.objects.drain(..).map(|s| Box::new(s) as Box<dyn GenericObject>).collect::<Vec<Box<dyn GenericObject>>>();
     objects
   }
   

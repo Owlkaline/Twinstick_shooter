@@ -1,8 +1,7 @@
 use crate::SPEED;
 use crate::Input;
 
-use crate::{math, cgmath};
-use crate::{Vector2, Vector3, GenericObject, ObjectData};
+use crate::{Vector3, GenericObject, ObjectData};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct Character {
@@ -29,7 +28,7 @@ impl GenericObject for Character {
     &mut self.data
   }
   
-  fn collided_with_dynamic_object(&self, dynamic_object: &mut Box<GenericObject>) {
+  fn collided_with_dynamic_object(&self, _dynamic_object: &mut Box<dyn GenericObject>) {
     
   }
   
@@ -38,7 +37,7 @@ impl GenericObject for Character {
     let mut s = false;
     let mut a = false;
     let mut d = false;
-    let mut space = false;
+   // let mut space = false;
     for input in self.gather_inputs() {
       match input {
         Input::W => {
@@ -60,7 +59,7 @@ impl GenericObject for Character {
         Input::Space => {
           self.mut_data().grounded = false;
           self.mut_data().vel.y = 50.0;
-          space = true;
+         // space = true;
         },
       }
     }

@@ -1,20 +1,14 @@
-use std::io::prelude::*;
-use std::thread;
-use std::net::{UdpSocket, TcpListener, TcpStream, Shutdown};
-use std::io::{Read, Write, ErrorKind};
+use std::net::UdpSocket;
 use std::io;
 use std::net::SocketAddr;
-use std::time::Duration;
 
-use std::sync::Arc;
 use std::time;
 use std::str;
 
-use twinstick_logic::{BUFFER_SIZE, FPS_60, DataType, TwinstickGame, GenericObject};
+use twinstick_logic::{BUFFER_SIZE, FPS_60, DataType, TwinstickGame};
 
 use chrono::Local;
 
-#[macro_use]
 pub extern crate serde_derive;
 pub extern crate bincode;
 
@@ -35,7 +29,7 @@ pub struct Server {
 impl Server {
   pub fn new(ip: &str) -> Server {
     log(format!("listening on udp port {}", ip));
-    let mut udp = UdpSocket::bind(ip).unwrap();
+    let udp = UdpSocket::bind(ip).unwrap();
     udp.set_nonblocking(true).unwrap();
     
     Server {
@@ -77,7 +71,7 @@ impl Server {
       Ok(i) => {
         self.remove_player(i);
       },
-      Err(e) => {
+      Err(_e) => {
        // println!("Error: {}", e);
        // self.remove_all_players();
       }
@@ -195,11 +189,10 @@ impl Server {
 fn main() {
   let mut server = Server::new("0.0.0.0:8008");
   
-  let mut delta_time: f64 = 0.0;
+  let mut delta_time: f64;
   let mut last_time = time::Instant::now();
   
   let mut tick = 0.0;
-  let mut counter = 0;
   
   loop {
     delta_time = last_time.elapsed().subsec_nanos() as f64 / 1000000000.0 as f64;
@@ -212,12 +205,6 @@ fn main() {
     if tick >= FPS_60 {
       tick = 0.0;
       server.update(FPS_60);
-      
-      counter += 1;
-      if counter >= 6 {
-        counter = 0;
-        server.send_player_data_to_all_clients();
-      }
     }
   }
 }

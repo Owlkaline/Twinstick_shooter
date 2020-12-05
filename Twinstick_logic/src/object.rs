@@ -1,7 +1,7 @@
 pub use bincode::{deserialize, serialize};
 
 use crate::{math, cgmath, DrawCall};
-use crate::{Character, SendStaticObject, SendDynamicObject, SendDynamicObjectUpdate, Input};
+use crate::{SendStaticObject, SendDynamicObject, SendDynamicObjectUpdate, Input};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct Vector2 {
@@ -174,17 +174,17 @@ impl ObjectData {
 }
 
 pub trait GenericObjectClone {
-  fn clone_generic_object(&self) -> Box<GenericObject>;
+  fn clone_generic_object(&self) -> Box<dyn GenericObject>;
 }
 
 impl<T: 'static + GenericObject + Clone + Send + Sync> GenericObjectClone for T {
-  fn clone_generic_object(&self) -> Box<GenericObject> {
+  fn clone_generic_object(&self) -> Box<dyn GenericObject> {
     Box::new(self.clone())
   }
 }
 
-impl Clone for Box<GenericObject> {
-  fn clone(&self) -> Box<GenericObject> {
+impl Clone for Box<dyn GenericObject> {
+  fn clone(&self) -> Box<dyn GenericObject> {
     self.clone_generic_object()
   }
 }
@@ -196,7 +196,7 @@ pub trait GenericObject: GenericObjectClone {
   fn update(&mut self, delta_time: f64);
   fn physics_update(&mut self, delta_time: f64);
   
-  fn collided_with_dynamic_object(&self, dynamic_object: &mut Box<GenericObject>);
+  fn collided_with_dynamic_object(&self, dynamic_object: &mut Box<dyn GenericObject>);
   
   fn send_dyn_obj(&self) -> SendDynamicObject {
     SendDynamicObject {
@@ -254,13 +254,13 @@ pub trait GenericObject: GenericObjectClone {
   
   fn collision_data(&self) -> CollisionInfo {
     match &self.data().collision_data {
-      AABB => {
+      CollisionType::AABB => {
         CollisionInfo::AABB(self.data().pos.clone(), self.hitbox_size(), Vector4::new(1.0, 0.0, 0.0, 0.0))
       },
-      Sphere => {
+      CollisionType::Sphere => {
         CollisionInfo::Sphere(Vector4::new(self.data().pos.x, self.data().pos.y, self.data().pos.z, self.hitbox_size().x))
       },
-      Point => {
+      CollisionType::Point => {
         CollisionInfo::Point(self.data().pos.clone())
       },
     }
@@ -313,7 +313,7 @@ pub trait GenericObject: GenericObjectClone {
   }
   
   // Moves along all axes based on rotation, naively
-  fn naive_movement(&mut self, delta_time: f64) {
+  fn naive_movement(&mut self, _delta_time: f64) {
     
   }
   

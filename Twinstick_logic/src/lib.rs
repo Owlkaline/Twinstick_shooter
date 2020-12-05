@@ -1,13 +1,3 @@
-use std::io::prelude::*;
-use std::thread;
-use std::net::{UdpSocket, TcpListener, TcpStream, Shutdown};
-use std::io::{Read, Write, ErrorKind};
-use std::io;
-use std::net::SocketAddr;
-use std::time::Duration;
-
-use std::sync::Arc;
-use std::time;
 use std::str;
 
 use maat_graphics::{math, cgmath, DrawCall};
