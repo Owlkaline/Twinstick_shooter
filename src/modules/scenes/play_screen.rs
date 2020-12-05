@@ -108,7 +108,7 @@ impl PlayScreen {
     static_objects.push(Box::new(unit_floor3));
     
     static_objects.push(Box::new(hug_cube));*/
-    let mut client = TwinstickClient::new("127.0.0.1:8008");//"45.77.234.65:8008");//"127.0.0.1:8008");
+    let mut client = TwinstickClient::new("45.77.234.65:8008");//"127.0.0.1:8008");
     client.connect();
     client.send();
     
