@@ -1,13 +1,12 @@
 use std::str;
 use std::net::{UdpSocket, SocketAddr};
 
-
 use std::io;
 use std::time;
 
-use twinstick_logic::*;
+use twinstick_logic::{BUFFER_SIZE, DataType};
 
-const BUFFER_SIZE: usize = 512;
+//const BUFFER_SIZE: usize = 512;
 
 pub struct TwinstickClient {
   udp: UdpSocket,
@@ -25,22 +24,22 @@ impl TwinstickClient {
   pub fn new(ip: &str) -> TwinstickClient {
     println!("Attempting to connect to server {}", ip);
     let addrs = [
-   /*   SocketAddr::from(([127, 0, 0, 1], 8010)),
+      SocketAddr::from(([127, 0, 0, 1], 8010)),
       SocketAddr::from(([127, 0, 0, 1], 8011)),
       SocketAddr::from(([127, 0, 0, 1], 8012)),
       SocketAddr::from(([127, 0, 0, 1], 8013)),
       SocketAddr::from(([127, 0, 0, 1], 8014)),
       SocketAddr::from(([127, 0, 0, 1], 8015)),
       SocketAddr::from(([127, 0, 0, 1], 8016)),
-      SocketAddr::from(([127, 0, 0, 1], 8017)),*/
-      SocketAddr::from(([0, 0, 0, 0], 8010)),
+      SocketAddr::from(([127, 0, 0, 1], 8017)),
+    /*  SocketAddr::from(([0, 0, 0, 0], 8010)),
       SocketAddr::from(([0, 0, 0, 0], 8011)),
       SocketAddr::from(([0, 0, 0, 0], 8012)),
       SocketAddr::from(([0, 0, 0, 0], 8013)),
       SocketAddr::from(([0, 0, 0, 0], 8014)),
       SocketAddr::from(([0, 0, 0, 0], 8015)),
       SocketAddr::from(([0, 0, 0, 0], 8016)),
-      SocketAddr::from(([0, 0, 0, 0], 8017)),
+      SocketAddr::from(([0, 0, 0, 0], 8017)),*/
     ];
     let udp = UdpSocket::bind(&addrs[..]).unwrap();
     udp.set_nonblocking(true).unwrap();
@@ -48,31 +47,59 @@ impl TwinstickClient {
     TwinstickClient {
       udp,
       server: ip.to_string(),
-      disconnected: false,
+      disconnected: true,
     }
   }
   
+  pub fn disconnected(&self) -> bool {
+    self.disconnected
+  }
+  
   pub fn connect(&mut self) {
-    self.udp.connect(self.server.clone()).is_ok();//.unwrap_or(panic!("Cannot connect to server: {}", self.server))
+    if !self.disconnected {
+      return;
+    }
+    
+    match self.udp.connect(self.server.clone()) {
+      Ok(_) => {
+        self.disconnected = false;
+      },
+      Err(e) => {
+        self.disconnected = true;
+      },
+    }
   }
   
   pub fn send_datatype(&mut self, data_type: DataType) {
+    if self.disconnected {
+      return;
+    }
+    
     self.udp.send(&data_type.serialise());
   }
   
   pub fn send(&mut self) {
+    if self.disconnected {
+      return;
+    }
+    
     let resposne = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
     match self.udp.send(&resposne) {
       Ok(_) => {},
-      Err(e) => {println!("{:?}",e);},
+      Err(e) => { self.disconnected = true; }, //println!("{:?}",e);},
     }
   }
   
   pub fn recieve(&mut self) -> Option<DataType> {
+    if self.disconnected {
+      return None;
+    }
+    
     let mut buffer = [0; BUFFER_SIZE];
     
     match self.udp.recv_from(&mut buffer) {
       Ok((number_of_bytes, src_addr)) => {
+      //  println!("bytes: {}, addr: {}", number_of_bytes, src_addr);
         let filled_buf = &mut buffer[..number_of_bytes];
         return DataType::deserialise(filled_buf);
       },
@@ -81,7 +108,7 @@ impl TwinstickClient {
             // via platform-specific APIs such as epoll or IOCP
             //wait_for_fd();
       },
-      Err(e) => panic!("encountered IO error: {}", e),
+      Err(e) => self.disconnected = true, //panic!("encountered IO error: {}", e),
     }
     
     None

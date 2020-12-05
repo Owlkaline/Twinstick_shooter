@@ -1,10 +1,10 @@
-pub use character::Character;
-pub use static_object::StaticObject;
-pub use moving_platform::MovingPlatform;
+//pub use character::Character;
+//pub use static_object::StaticObject;
+//pub use moving_platform::MovingPlatform;
 
-mod character;
-mod static_object;
-mod moving_platform;
+//mod character;
+//mod static_object;
+//mod moving_platform;
 
 use maat_graphics::math;
 use maat_graphics::math::Vector3Math;

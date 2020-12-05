@@ -10,11 +10,9 @@ use std::sync::Arc;
 use std::time;
 use std::str;
 
-use twinstick_logic::*;
+use twinstick_logic::{BUFFER_SIZE, FPS_60, DataType, TwinstickGame, GenericObject};
 
 use chrono::Local;
-
-const BUFFER_SIZE: usize = 512;
 
 #[macro_use]
 pub extern crate serde_derive;
@@ -62,7 +60,7 @@ impl Server {
     self.client_last_connection.push(time::Instant::now());
     self.game.add_player();
     
-    self.send_data_to_all_clients(&DataType::AddPlayer(self.game.players()[index].clone()).serialise());
+    self.send_data_to_all_clients(&DataType::AddPlayer(self.game.players()[index].clone().send_dyn_obj()).serialise());
     self.send_data_to_client(src_addr, &DataType::PlayerNum(index).serialise());
   }
   
@@ -96,14 +94,21 @@ impl Server {
     }
   }
   
-  pub fn send_game_data_to_all_clients(&mut self) {
+  pub fn send_static_objects_to_client(&mut self, src_addr: SocketAddr) {
+    for j in 0..self.game.static_objects().len() {
+      let object = self.game.static_objects()[j].clone().send_static_object();
+      self.send_data_to_client(src_addr, &DataType::StaticObject(object).serialise());
+    }
+  }
+  
+  pub fn send_static_objects_to_all_clients(&mut self) {
     if self.clients.len() == 0 {
       return;
     }
     
-    for i in 0..self.clients.len() {
-      self.send_data_to_client(self.clients[i], &DataType::Game(self.game.clone()).serialise());
-      self.send_data_to_client(self.clients[i], &DataType::PlayerNum(i).serialise());
+    for j in 0..self.game.static_objects().len() {
+      let object = self.game.static_objects()[j].clone().send_static_object();
+      self.send_data_to_all_clients(&DataType::StaticObject(object).serialise());
     }
   }
   
@@ -112,8 +117,11 @@ impl Server {
       return;
     }
     
+    for j in 0..self.game.players().len() {
+      self.send_data_to_all_clients(&DataType::Player(self.game.players()[j].clone().send_dyn_obj_update(), j).serialise());
+    }
+    
     for i in 0..self.clients.len() {
-      self.send_data_to_client(self.clients[i], &DataType::Player(self.game.players()[i].clone(), i).serialise());
       self.send_data_to_client(self.clients[i], &DataType::PlayerNum(i).serialise());
     }
   }
@@ -132,9 +140,10 @@ impl Server {
         if !self.clients.contains(&src_addr) {
           log(format!("New client connected: {}", src_addr));
           for i in 0..self.clients.len() {
-            self.send_data_to_client(src_addr, &DataType::AddPlayer(self.game.players()[i].clone()).serialise());
+            self.send_data_to_client(src_addr, &DataType::AddPlayer(self.game.players()[i].clone().send_dyn_obj()).serialise());
           }
           self.add_player(src_addr);
+          self.send_static_objects_to_client(src_addr);
         } else {
           let mut client_id = 0;
           match self.clients.binary_search(&src_addr) {
@@ -183,8 +192,6 @@ impl Server {
   }
 }
 
-const FPS_60: f64 = 1.0/60.0;
-
 fn main() {
   let mut server = Server::new("0.0.0.0:8008");
   
@@ -204,12 +211,7 @@ fn main() {
     if tick >= FPS_60 {
       tick = 0.0;
       server.update(FPS_60);
-      
-      if DataType::Game(server.game().clone()).serialise().len() > BUFFER_SIZE {
-        server.send_player_data_to_all_clients();
-      } else {
-        server.send_game_data_to_all_clients();
-      }
+      server.send_player_data_to_all_clients();
     }
   }
 }

@@ -1,9 +1,7 @@
 use maat_graphics::cgmath::{Vector2, Vector3};
 use maat_graphics::math;
 
-use crate::modules::objects::{GenericObject, ObjectData, CollisionType};
-use maat_input_handler::MappedKeys;
-use maat_graphics::ModelData;
+use crate::Twinstick_{GenericObject, ObjectData, CollisionType};
 
 pub struct StaticObject {
   data: ObjectData,
