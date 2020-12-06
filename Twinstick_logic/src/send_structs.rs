@@ -17,6 +17,29 @@ impl SendStaticObject {
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+pub struct SendPlayerObjectUpdate {
+  pub x: f64,
+  pub y: f64,
+  pub z: f64,
+  pub rotation: f64,
+  pub is_firing: bool,
+}
+
+impl SendPlayerObjectUpdate {
+  pub fn position(&self) -> Vector3 {
+    Vector3::new(self.x, self.y, self.z)
+  }
+  
+  pub fn rotation(&self) -> f64 {
+    self.rotation
+  }
+  
+  pub fn is_firing(&self) -> bool {
+    self.is_firing
+  }
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct SendDynamicObjectUpdate {
   pub x: f64,
   pub y: f64,

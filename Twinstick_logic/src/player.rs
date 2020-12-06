@@ -62,14 +62,16 @@ impl GenericObject for Character {
     
   }
   
-  fn update(&mut self, delta_time: f64) -> Vec<Box<dyn GenericObject>> {
+  fn update(&mut self, is_player: bool, delta_time: f64) -> Vec<Box<dyn GenericObject>> {
     let mut dyn_objects = Vec::new();
     
     let mut w = false;
     let mut s = false;
     let mut a = false;
     let mut d = false;
-   // let mut space = false;
+    
+    let mut left_click = false;
+    
     for input in self.gather_inputs() {
       match input {
         Input::W => {
@@ -94,9 +96,20 @@ impl GenericObject for Character {
          // space = true;
         },
         Input::LeftClick => {
-          dyn_objects.append(&mut self.shoot(delta_time));
+          if is_player {
+            left_click = true;
+            self.mut_data().is_firing = true;
+          }
         }
       }
+    }
+    
+    if self.data().is_firing {
+      dyn_objects.append(&mut self.shoot(delta_time));
+    }
+    
+    if is_player && !left_click {
+      self.mut_data().is_firing = false;
     }
     
     if !w && !s {

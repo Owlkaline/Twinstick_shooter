@@ -92,7 +92,7 @@ impl GenericObject for StaticObject {
     }
   }
   
-  fn update(&mut self, _delta_time: f64) -> Vec<Box<dyn GenericObject>> {
+  fn update(&mut self, _is_player: bool, _delta_time: f64) -> Vec<Box<dyn GenericObject>> {
     Vec::new()
   }
   

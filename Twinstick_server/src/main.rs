@@ -46,6 +46,7 @@ impl Server {
   
   pub fn update(&mut self, delta_time: f64) {
     self.game.update(delta_time);
+    self.send_player_data_to_all_clients();
   }
   
   pub fn add_player(&mut self, src_addr: SocketAddr) {
@@ -112,7 +113,7 @@ impl Server {
     }
     
     for j in 0..self.game.players().len() {
-      self.send_data_to_all_clients(&DataType::Player(self.game.players()[j].clone().send_dyn_obj_update(), j).serialise());
+      self.send_data_to_all_clients(&DataType::Player(self.game.players()[j].clone().send_player_update(), j).serialise());
     }
     
     for i in 0..self.clients.len() {

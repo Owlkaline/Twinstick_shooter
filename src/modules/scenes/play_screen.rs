@@ -13,7 +13,8 @@ use rand::prelude::ThreadRng;
 use rand::thread_rng;
 
 use twinstick_logic::{Character, Input, DataType, GenericObject, 
-                      Vector3, collisions, SendDynamicObject, SendDynamicObjectUpdate};
+                      Vector3, collisions, SendDynamicObject, SendDynamicObjectUpdate,
+                      SendPlayerObjectUpdate};
 use twinstick_client::{TwinstickClient};
 
 const CAMERA_DEFAULT_X: f32 = 83.93359;
@@ -57,7 +58,7 @@ impl PlayScreen {
     let static_objects = Vec::new();
     //let mut decorative_objects: Vec<Box<dyn GenericObject>> = Vec::new();
     
-    let mut client = TwinstickClient::new("45.77.234.65:8008");//"127.0.0.1:8008");
+    let mut client = TwinstickClient::new("127.0.0.1:8008");//"45.77.234.65:8008");//"127.0.0.1:8008");
     client.connect();
     client.send();
     
@@ -76,16 +77,18 @@ impl PlayScreen {
     }
   }
   
-  pub fn update_player(&mut self, p: SendDynamicObjectUpdate, i: usize) {
+  pub fn update_player(&mut self, p: SendPlayerObjectUpdate, i: usize) {
     if i > self.players.len() || self.players.len() == 0 {
       return;
     }
     
     let rot = p.rotation();
     let pos = p.position().clone();
-    
+    let firing = p.is_firing();
+    println!("i: {} Firing: {}", i, firing);
     self.players[i].set_position(pos);
     self.players[i].set_rotation(rot);
+    self.players[i].set_firing(firing);
   }
   
   pub fn add_player(&mut self, character: SendDynamicObject) {
@@ -216,7 +219,7 @@ impl Scene for PlayScreen {
               if char_idx as usize == idx {
                 self.character_idx = None;
               } else if idx < char_idx as usize {
-                char_idx = -1;
+                char_idx -= 1;
                 self.character_idx = Some(char_idx as usize);
               }
             }
@@ -239,13 +242,14 @@ impl Scene for PlayScreen {
     
     let mut new_objects = Vec::new();
     for i in 0..self.players.len() {
-      new_objects.append(&mut self.players[i].update(delta_time as f64));
+      let is_player = if char_idx != -1 { char_idx as usize == i } else { false };
+      new_objects.append(&mut self.players[i].update(is_player, delta_time as f64));
       self.players[i].physics_update(delta_time as f64);
     }
     
     let mut to_remove = Vec::new();
     for i in (0..self.dynamic_objects.len()).rev() {
-      self.dynamic_objects[i].update(delta_time as f64);
+      self.dynamic_objects[i].update(true, delta_time as f64);
       if self.dynamic_objects[i].is_dead() {
         to_remove.push(i);
       }

@@ -94,12 +94,12 @@ impl TwinstickGame {
   pub fn update(&mut self, delta_time: f64) {
     let mut new_objects = Vec::new();
     for p in &mut self.players {
-      new_objects.append(&mut p.update(delta_time));
+      new_objects.append(&mut p.update(true, delta_time));
     }
     
     let mut to_remove = Vec::new();
     for i in (0..self.dynamic_objects.len()).rev() {
-      self.dynamic_objects[i].update(delta_time);
+      self.dynamic_objects[i].update(true, delta_time);
       if self.dynamic_objects[i].is_dead() {
         to_remove.push(i);
       }

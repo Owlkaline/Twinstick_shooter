@@ -44,7 +44,7 @@ pub enum Input {
 pub enum DataType {
 //  Game(TwinstickGame),
   PlayerNum(usize),
-  Player(SendDynamicObjectUpdate, usize),
+  Player(SendPlayerObjectUpdate, usize),
   AddPlayer(SendDynamicObject),
   RemovePlayer(usize),
   PlayerRotation(f64, usize),

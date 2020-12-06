@@ -1,7 +1,7 @@
 pub use bincode::{deserialize, serialize};
 
 use crate::{math, cgmath, DrawCall};
-use crate::{SendStaticObject, SendDynamicObject, SendDynamicObjectUpdate, Input};
+use crate::{SendStaticObject, SendDynamicObject, SendDynamicObjectUpdate, SendPlayerObjectUpdate, Input};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct Vector2 {
@@ -134,6 +134,7 @@ pub struct ObjectData {
   pub hitbox_size: Vector3,
   
   pub life: i32,
+  pub is_firing: bool,
 }
 
 impl ObjectData {
@@ -156,6 +157,7 @@ impl ObjectData {
       
       hitbox_size: size,//: Vector3::new_same(1.0),
       life: 1,
+      is_firing: false,
     }
   }
   
@@ -196,7 +198,7 @@ pub trait GenericObject: GenericObjectClone {
   fn data(&self) -> &ObjectData;
   fn mut_data(&mut self) -> &mut ObjectData;
   
-  fn update(&mut self, delta_time: f64) -> Vec<Box<dyn GenericObject>>;
+  fn update(&mut self, is_player: bool, delta_time: f64) -> Vec<Box<dyn GenericObject>>;
   fn physics_update(&mut self, delta_time: f64);
   
   fn collided_with_dynamic_object(&self, dynamic_object: &mut Box<dyn GenericObject>);
@@ -217,6 +219,16 @@ pub trait GenericObject: GenericObjectClone {
       hitbox_z: self.hitbox_size().z,
       rotation: self.rotation().y,
       model: self.model().to_string(),
+    }
+  }
+  
+  fn send_player_update(&self) -> SendPlayerObjectUpdate {
+    SendPlayerObjectUpdate {
+      x: self.position().x,
+      y: self.position().y,
+      z: self.position().z,
+      rotation: self.rotation().y,
+      is_firing: self.data().is_firing,
     }
   }
   
@@ -281,6 +293,10 @@ pub trait GenericObject: GenericObjectClone {
       data: self.data().clone(),
     }
   }*/
+  
+  fn set_firing(&mut self, f: bool) {
+    self.mut_data().is_firing = f;
+  }
   
   fn gather_inputs(&mut self) -> Vec<Input> {
     let i = self.data().inputs.clone();

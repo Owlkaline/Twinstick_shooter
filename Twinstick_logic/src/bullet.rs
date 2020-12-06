@@ -41,7 +41,7 @@ impl GenericObject for Bullet {
     
   }
   
-  fn update(&mut self, delta_time: f64) -> Vec<Box<dyn GenericObject>> {
+  fn update(&mut self, _is_player: bool, delta_time: f64) -> Vec<Box<dyn GenericObject>> {
     self.duration -= delta_time; 
     
     if self.duration < 0.0 {
