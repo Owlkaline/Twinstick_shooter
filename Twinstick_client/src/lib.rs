@@ -3,7 +3,7 @@ use std::net::{UdpSocket, SocketAddr};
 
 use std::io;
 
-use twinstick_logic::{BUFFER_SIZE, DataType};
+use twinstick_logic::{BUFFER_SIZE, VERSION, DataType};
 
 pub struct TwinstickClient {
   udp: UdpSocket,
@@ -59,19 +59,20 @@ impl TwinstickClient {
     
     match self.udp.connect(self.server.clone()) {
       Ok(_) => {
-        self.disconnected = false;
+        //self.disconnected = false;
+        if self.disconnected {
+          self.send_datatype(DataType::TryConnect(VERSION));
+        }
       },
       Err(_e) => {
-        self.disconnected = true;
+        //self.disconnected = true;
       },
     }
+    
+    
   }
   
   pub fn send_datatype(&mut self, data_type: DataType) {
-    if self.disconnected {
-      return;
-    }
-    
     let _ = self.udp.send(&data_type.serialise()).is_ok();
   }
   
@@ -82,29 +83,37 @@ impl TwinstickClient {
     
     let resposne = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
     match self.udp.send(&resposne) {
-      Ok(_) => {},
+      Ok(_) => { },
       Err(_e) => { self.disconnected = true; }, //println!("{:?}",e);},
     }
   }
   
   pub fn recieve(&mut self) -> Option<DataType> {
-    if self.disconnected {
-      return None;
-    }
-    
     let mut buffer = [0; BUFFER_SIZE];
     
     match self.udp.recv_from(&mut buffer) {
       Ok((number_of_bytes, _src_addr)) => {
         let filled_buf = &mut buffer[..number_of_bytes];
-        return DataType::deserialise(filled_buf);
+        let dt = DataType::deserialise(filled_buf);
+        if dt.is_some() {
+          match dt.clone().unwrap() {
+            DataType::ConfirmConnect(v) => {
+              println!("Confrim connection {}", v);
+              self.disconnected = false;
+            },
+            DataType::Err(e) => { panic!("{}", e); },
+            _ => {},
+          }
+        }
+        
+        return dt;
       },
       Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
             // wait until network socket is ready, typically implemented
             // via platform-specific APIs such as epoll or IOCP
             //wait_for_fd();
       },
-      Err(_e) => self.disconnected = true, //panic!("encountered IO error: {}", e),
+      Err(_e) => {}, //panic!("encountered IO error: {}", e),
     }
     
     None

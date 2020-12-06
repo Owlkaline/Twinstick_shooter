@@ -5,7 +5,7 @@ use std::net::SocketAddr;
 use std::time;
 use std::str;
 
-use twinstick_logic::{BUFFER_SIZE, FPS_60, DataType, TwinstickGame};
+use twinstick_logic::{BUFFER_SIZE, VERSION, FPS_60, DataType, TwinstickGame};
 
 use chrono::Local;
 
@@ -133,12 +133,22 @@ impl Server {
         let filled_buf = &mut buffer[..number_of_bytes];
         
         if !self.clients.contains(&src_addr) {
-          log(format!("New client connected: {}", src_addr));
-          for i in 0..self.clients.len() {
-            self.send_data_to_client(src_addr, &DataType::AddPlayer(self.game.players()[i].clone().send_dyn_obj()).serialise());
+          match DataType::deserialise(filled_buf) {
+            Some(DataType::TryConnect(v)) => {
+              if v == VERSION {
+                self.send_data_to_client(src_addr, &DataType::ConfirmConnect(VERSION).serialise());
+                log(format!("New client connected: {}", src_addr));
+                for i in 0..self.clients.len() {
+                  self.send_data_to_client(src_addr, &DataType::AddPlayer(self.game.players()[i].clone().send_dyn_obj()).serialise());
+                }
+                self.add_player(src_addr);
+                self.send_static_objects_to_client(src_addr);
+              } else {
+                self.send_data_to_client(src_addr, &DataType::Err(format!("Outdated version (Expected: {}, Actual: {})", VERSION, v)).serialise());
+              }
+            },
+            _ => {},
           }
-          self.add_player(src_addr);
-          self.send_static_objects_to_client(src_addr);
         } else {
           let mut client_id = 0;
           match self.clients.binary_search(&src_addr) {

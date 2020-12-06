@@ -85,7 +85,7 @@ impl PlayScreen {
     let rot = p.rotation();
     let pos = p.position().clone();
     let firing = p.is_firing();
-    println!("i: {} Firing: {}", i, firing);
+    //println!("i: {} Firing: {}", i, firing);
     self.players[i].set_position(pos);
     self.players[i].set_rotation(rot);
     self.players[i].set_firing(firing);

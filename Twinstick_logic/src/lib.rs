@@ -30,6 +30,8 @@ mod static_object;
 mod bullet;
 mod send_structs;
 
+pub const VERSION: u32 = 2;
+
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub enum Input {
   W,
@@ -43,6 +45,8 @@ pub enum Input {
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub enum DataType {
 //  Game(TwinstickGame),
+  TryConnect(u32),
+  ConfirmConnect(u32),
   PlayerNum(usize),
   Player(SendPlayerObjectUpdate, usize),
   AddPlayer(SendDynamicObject),
@@ -51,6 +55,7 @@ pub enum DataType {
   Input(Input),
   StaticObject(SendStaticObject),
   Exit,
+  Err(String),
 }
 
 impl DataType {
