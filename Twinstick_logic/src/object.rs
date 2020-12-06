@@ -132,6 +132,8 @@ pub struct ObjectData {
   pub collision_data: CollisionType,
   
   pub hitbox_size: Vector3,
+  
+  pub life: i32,
 }
 
 impl ObjectData {
@@ -153,6 +155,7 @@ impl ObjectData {
       collision_data: CollisionType::AABB,//(pos, size.clone(), Vector4::new(0.0, 0.0, 0.0, 1.0))),
       
       hitbox_size: size,//: Vector3::new_same(1.0),
+      life: 1,
     }
   }
   
@@ -193,10 +196,13 @@ pub trait GenericObject: GenericObjectClone {
   fn data(&self) -> &ObjectData;
   fn mut_data(&mut self) -> &mut ObjectData;
   
-  fn update(&mut self, delta_time: f64);
+  fn update(&mut self, delta_time: f64) -> Vec<Box<dyn GenericObject>>;
   fn physics_update(&mut self, delta_time: f64);
   
   fn collided_with_dynamic_object(&self, dynamic_object: &mut Box<dyn GenericObject>);
+  fn collided_with_static_object(&mut self, static_object: &mut Box<dyn GenericObject>);
+  
+  fn additional_draws(&self, draw_calls: &mut Vec<DrawCall>);
   
   fn send_dyn_obj(&self) -> SendDynamicObject {
     SendDynamicObject {
@@ -250,6 +256,10 @@ pub trait GenericObject: GenericObjectClone {
   
   fn rotation(&self) -> &Vector3 {
     &self.data().rotation
+  }
+  
+  fn is_dead(&self) -> bool {
+    self.data().life <= 0
   }
   
   fn collision_data(&self) -> CollisionInfo {
@@ -332,5 +342,6 @@ pub trait GenericObject: GenericObjectClone {
                                          self.data().size.clone().to_cgmath(),
                                          cgmath::Vector3::new(self.data().rotation.x as f32, self.data().rotation.y as f32, self.data().rotation.z as f32),
                                          self.data().model.to_string()));
+    self.additional_draws(draw_calls);
   }
 }

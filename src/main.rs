@@ -98,7 +98,11 @@ fn main() {
   graphics.add_model("unit_cube1".to_string(),
                       "./resources/models/unit_cube1.glb".to_string());
   graphics.add_model("main_char".to_string(),
-                      "./resources/models/MainCharacter.glb".to_string());
+                      "./resources/models/main_character.glb".to_string());
+  graphics.add_model("bullet".to_string(),
+                      "./resources/models/bullet.glb".to_string());
+  graphics.add_model("sight".to_string(),
+                      "./resources/models/sight.glb".to_string());
   
   graphics.load_shaders();
   graphics.create_model_instance_buffer("house_two".to_string());

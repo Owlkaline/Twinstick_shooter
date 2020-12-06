@@ -4,6 +4,7 @@ use crate::collisions;
 pub struct TwinstickGame {
   players: Vec<Box<dyn GenericObject>>,
   static_objects: Vec<Box<dyn GenericObject>>,
+  dynamic_objects: Vec<Box<dyn GenericObject>>,
 }
 
 impl TwinstickGame {
@@ -45,8 +46,8 @@ impl TwinstickGame {
     
     TwinstickGame {
       players: Vec::new(),
-      static_objects, /*vec!(StaticObject::new(Vector3::new(0.0, 5.0, 0.0), Vector3::new(40.0, 3.0, 40.0), "unit_floor".to_string()),
-                           StaticObject::new(Vector3::new(0.0, 10.0, 0.0), Vector3::new(3.0, 3.0, 3.0), "unit_floor".to_string())),*/
+      static_objects,
+      dynamic_objects: Vec::new(),
     }
   }
   
@@ -91,10 +92,25 @@ impl TwinstickGame {
   }
   
   pub fn update(&mut self, delta_time: f64) {
+    let mut new_objects = Vec::new();
     for p in &mut self.players {
-      p.update(delta_time);
+      new_objects.append(&mut p.update(delta_time));
     }
     
-    collisions::calculate_collisions(&mut self.players, &mut self.static_objects);
+    let mut to_remove = Vec::new();
+    for i in (0..self.dynamic_objects.len()).rev() {
+      self.dynamic_objects[i].update(delta_time);
+      if self.dynamic_objects[i].is_dead() {
+        to_remove.push(i);
+      }
+    }
+    
+    for remove in to_remove {
+      self.dynamic_objects.remove(remove);
+    }
+    
+    collisions::calculate_collisions(&mut self.players, &mut self.static_objects, &mut self.dynamic_objects);
+    
+    self.dynamic_objects.append(&mut new_objects);
   }
 }

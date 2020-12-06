@@ -17,6 +17,7 @@ pub use self::game::TwinstickGame;
 pub use self::player::Character;
 pub use self::object::{GenericObject, ObjectData, CollisionInfo, Vector2, Vector3, Vector4};
 pub use self::static_object::{StaticObject};
+pub use self::bullet::Bullet;
 pub use self::section::Section;
 pub use self::send_structs::*;
 
@@ -36,6 +37,7 @@ pub enum Input {
   S,
   D,
   Space,
+  LeftClick,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]

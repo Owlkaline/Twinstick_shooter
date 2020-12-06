@@ -31,7 +31,7 @@ pub struct PlayScreen {
   camera: PerspectiveCamera,
   last_mouse_pos: Vector2<f32>,
   players: Vec<Box<dyn GenericObject>>,
-  //dynamic_objects: Vec<Box<dyn GenericObject>>,
+  dynamic_objects: Vec<Box<dyn GenericObject>>,
   static_objects: Vec<Box<dyn GenericObject>>,
   //decorative_objects: Vec<Box<dyn GenericObject>>,
   character_idx: Option<usize>,
@@ -53,58 +53,11 @@ impl PlayScreen {
     camera.set_target(cgVector3::new(0.0, 0.0, 0.0));
     
     let players: Vec<Box<dyn GenericObject>> = Vec::new();
-    //let mut dynamic_objects: Vec<Box<dyn GenericObject>> = Vec::new();
+    let mut dynamic_objects: Vec<Box<dyn GenericObject>> = Vec::new();
     let static_objects = Vec::new();
     //let mut decorative_objects: Vec<Box<dyn GenericObject>> = Vec::new();
     
-    //let mut char_scale = 0.5;//0.4;
-    //let mut character = Character::new(Vector3::new(0.0, 10.0, 0.0));
-   // character.set_scale(Vector3::new(char_scale, char_scale, char_scale));
-    
-    //dynamic_objects.push(Box::new(character));
-    /*
-    let house_scale = 1.0;
-    
-    for i in 0..10 {
-      static_objects.push(Box::new(StaticObject::new(Vector3::new(0.0, 98.03922+4.8*house_scale*0.5 +4.7*2.0*house_scale*i as f32, 0.0), "house_two".to_string()).scale(Vector3::new(house_scale, house_scale, house_scale))));
-    }*/
-    
- //   static_objects.push(Box::new(StaticObject::new(Vector3::new(0.0, 2.0, 0.0), "flat_ramp".to_string())));
-  //  static_objects.push(Box::new(StaticObject::new(Vector3::new(6.0, 6.0, 0.0), "flat_wall".to_string())));
-  //  static_objects.push(Box::new(StaticObject::new(Vector3::new(-10.0, 6.0, 0.0), "static_collision_test".to_string())));
-    //static_objects.push(Box::new(StaticObject::new(Vector3::new(0.0, 6.0, 20.0), "floor_wall".to_string())));
-    
-  //  static_objects.push(Box::new(StaticObject::new(Vector3::new(0.0, 110.0, 0.0), "house_l".to_string())));
-    
-   // let mut floor = StaticObject::new(Vector3::new(0.0, 0.0, 0.0), "floor".to_string()).scale(Vector3::new(1.0, 1.0, 1.0));
-    
-    //decorative_objects.push(Box::new(floor));
-    
-   // let mut ground_floor = StaticObject::new(Vector3::new(0.0, 5.0, 0.0), "unit_floor".to_string()).scale(Vector3::new(10.0, 0.5, 10.0));
-   // let mut left_wall = StaticObject::new(Vector3::new(9.5, 5.0, 0.0), "unit_cube".to_string()).scale(Vector3::new(1.0, 40.0, 20.0));
-   // let mut back_wall = StaticObject::new(Vector3::new(0.0, 8.0, -10.0), "unit_cube".to_string()).scale(Vector3::new(20.0, 40.0, 0.5));
-   // let mut front_wall = StaticObject::new(Vector3::new(0.0, 4.0, 10.0), "unit_cube".to_string()).scale(Vector3::new(20.0, 40.0, 0.5));
-    //let mut groud_floor = StaticObject::new(Vector3::new(0.0, 2.0, 0.0), "unit_floor".to_string()).scale(Vector3::new(20.0, 10.0, 20.0));
-  /*  let mut unit_floor = StaticObject::new(Vector3::new(50.0, 150.0, 50.0), "unit_floor".to_string()).scale(Vector3::new(10.0, 10.0, 10.0));
-    //let mut unit_floor1 = StaticObject::new(Vector3::new(55.0, 151.0, 50.0), "unit_floor".to_string()).scale(Vector3::new(10.0, 1.0, 10.0));
-    let mut unit_floor2 = StaticObject::new(Vector3::new(60.0, 151.0, 50.0), "unit_floor".to_string()).scale(Vector3::new(10.0, 10.0, 10.0));
-    let mut unit_floor3 = StaticObject::new(Vector3::new(65.0, 153.0, 50.0), "unit_floor".to_string()).scale(Vector3::new(10.0, 10.0, 10.0));
-    
-    let mut hug_cube = StaticObject::new(Vector3::new(30.0, 110.0, 30.0), "hug_cube".to_string())
-                                    .scale(Vector3::new(2.0, 2.0, 2.0))
-                                    .rotation(Vector3::new(0.0, 45.0, 0.0));*/
-    
-  //  static_objects.push(Box::new(ground_floor));
-   // static_objects.push(Box::new(left_wall));
-   // static_objects.push(Box::new(back_wall));
-   // static_objects.push(Box::new(front_wall));
-    /*static_objects.push(Box::new(unit_floor));
-    //static_objects.push(Box::new(unit_floor1));
-    static_objects.push(Box::new(unit_floor2));
-    static_objects.push(Box::new(unit_floor3));
-    
-    static_objects.push(Box::new(hug_cube));*/
-    let mut client = TwinstickClient::new("127.0.0.1:8008");//"45.77.234.65:8008");//"127.0.0.1:8008");
+    let mut client = TwinstickClient::new("45.77.234.65:8008");//"127.0.0.1:8008");
     client.connect();
     client.send();
     
@@ -114,7 +67,7 @@ impl PlayScreen {
       camera,
       last_mouse_pos: Vector2::new(-1.0, -1.0),
       players,
-     // dynamic_objects,
+      dynamic_objects,
       static_objects,
      // decorative_objects,
       character_idx: None,
@@ -124,7 +77,7 @@ impl PlayScreen {
   }
   
   pub fn update_player(&mut self, p: SendDynamicObjectUpdate, i: usize) {
-    if i > self.players.len() {
+    if i > self.players.len() || self.players.len() == 0 {
       return;
     }
     
@@ -175,6 +128,10 @@ impl PlayScreen {
       self.client.send_datatype(DataType::Input(Input::Space));
     }
     
+    if self.data().left_mouse {
+      self.client.send_datatype(DataType::Input(Input::LeftClick));
+    }
+    
     if char_idx != -1 {
       if self.data().keys.w_pressed() {
         self.players[char_idx as usize].add_input(Input::W);
@@ -190,6 +147,10 @@ impl PlayScreen {
       
       if self.data().keys.space_pressed() {
         self.players[char_idx as usize].add_input(Input::Space);
+      }
+      
+      if self.data().left_mouse {
+        self.players[char_idx as usize].add_input(Input::LeftClick);
       }
     }
   }
@@ -276,9 +237,22 @@ impl Scene for PlayScreen {
     //let keys = self.data().keys.clone();
     //let model_data = self.data().model_data.clone();
     
+    let mut new_objects = Vec::new();
     for i in 0..self.players.len() {
-      self.players[i].update(delta_time as f64);
+      new_objects.append(&mut self.players[i].update(delta_time as f64));
       self.players[i].physics_update(delta_time as f64);
+    }
+    
+    let mut to_remove = Vec::new();
+    for i in (0..self.dynamic_objects.len()).rev() {
+      self.dynamic_objects[i].update(delta_time as f64);
+      if self.dynamic_objects[i].is_dead() {
+        to_remove.push(i);
+      }
+    }
+    
+    for remove in to_remove {
+      self.dynamic_objects.remove(remove);
     }
     /*
     for object in &mut self.static_objects {
@@ -293,7 +267,10 @@ impl Scene for PlayScreen {
     
     // Do Collisions
     collisions::calculate_collisions(&mut self.players,
-                                     &mut self.static_objects);
+                                     &mut self.static_objects,
+                                     &mut self.dynamic_objects);
+    
+    self.dynamic_objects.append(&mut new_objects);
     
     if self.data().scroll_delta < 0.0 {
       self.zoom += CAMERA_ZOOM_SPEED*self.zoom*self.zoom *delta_time + 0.01;
@@ -343,6 +320,10 @@ impl Scene for PlayScreen {
     }
     
     for object in &self.static_objects {
+      object.draw(draw_calls);
+    }
+    
+    for object in &self.dynamic_objects {
       object.draw(draw_calls);
     }
     

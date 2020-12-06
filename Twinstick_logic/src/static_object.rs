@@ -1,6 +1,6 @@
 pub use bincode::{deserialize, serialize};
 
-use crate::{ObjectData, CollisionInfo, GenericObject, Vector3};
+use crate::{DrawCall, ObjectData, CollisionInfo, GenericObject, Vector3};
 use crate::{FPS_60};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
@@ -39,6 +39,10 @@ impl GenericObject for StaticObject {
   
   fn mut_data(&mut self) -> &mut ObjectData {
     &mut self.data
+  }
+  
+  fn collided_with_static_object(&mut self, static_object: &mut Box<dyn GenericObject>) {
+    
   }
   
   fn collided_with_dynamic_object(&self, dynamic_object: &mut Box<dyn GenericObject>) {
@@ -88,11 +92,15 @@ impl GenericObject for StaticObject {
     }
   }
   
-  fn update(&mut self, _delta_time: f64) {
-    
+  fn update(&mut self, _delta_time: f64) -> Vec<Box<dyn GenericObject>> {
+    Vec::new()
   }
   
   fn physics_update(&mut self, _delta_time: f64) {
+    
+  }
+  
+  fn additional_draws(&self, draw_calls: &mut Vec<DrawCall>) {
     
   }
 }

@@ -31,9 +31,9 @@ impl Section {
     let x = self.x as f64*self.size;
     let y = Y;
     let z = self.z as f64*self.size;
-    let length = self.size-0.01;
+    let length = self.size;
     let height = MINIMUM_THICKNESS;
-    let width = self.size-0.01;
+    let width = self.size;
     self.objects.push(StaticObject::new(Vector3::new(x, y, z), Vector3::new(length, height, width), "unit_floor".to_string()));
     self
   }

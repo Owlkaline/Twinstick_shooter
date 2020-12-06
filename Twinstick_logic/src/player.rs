@@ -1,11 +1,15 @@
 use crate::SPEED;
 use crate::Input;
+use crate::{math, DrawCall};
 
-use crate::{Vector3, GenericObject, ObjectData};
+use crate::{Vector3, GenericObject, ObjectData, Bullet};
+
+const WEAPON_COOLDOWN: f64 = 0.06;
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct Character {
   pub data: ObjectData,
+  weapon_cooldown: f64,
 }
 
 impl Character {
@@ -15,7 +19,29 @@ impl Character {
     
     Character {
       data,
+      weapon_cooldown: WEAPON_COOLDOWN,
     }
+  }
+  
+  pub fn shoot(&mut self, delta_time: f64) -> Vec<Box<dyn GenericObject>> {
+    let mut bullets = Vec::new();
+    self.weapon_cooldown -= delta_time;
+    
+    if self.weapon_cooldown < 0.0 {
+      self.weapon_cooldown = WEAPON_COOLDOWN;
+      let mut x = self.position().x;
+      let mut y = self.position().y;
+      let mut z = self.position().z;
+      let rotation = self.rotation().y;
+      
+      let perp_x = self.size().x*0.5*math::to_radians(rotation).sin();
+      let perp_z = self.size().z*0.5*math::to_radians(rotation).cos();
+      
+      bullets.push(Box::new(Bullet::new(Vector3::new(x+perp_x,y,z+perp_z), Vector3::new_same(1.0), rotation, "bullet".to_string())) as Box<dyn GenericObject>);
+      
+    }
+    
+    bullets
   }
 }
 
@@ -28,11 +54,17 @@ impl GenericObject for Character {
     &mut self.data
   }
   
+  fn collided_with_static_object(&mut self, static_object: &mut Box<dyn GenericObject>) {
+    
+  }
+  
   fn collided_with_dynamic_object(&self, _dynamic_object: &mut Box<dyn GenericObject>) {
     
   }
   
-  fn update(&mut self, delta_time: f64) {
+  fn update(&mut self, delta_time: f64) -> Vec<Box<dyn GenericObject>> {
+    let mut dyn_objects = Vec::new();
+    
     let mut w = false;
     let mut s = false;
     let mut a = false;
@@ -61,6 +93,9 @@ impl GenericObject for Character {
           self.mut_data().vel.y = 50.0;
          // space = true;
         },
+        Input::LeftClick => {
+          dyn_objects.append(&mut self.shoot(delta_time));
+        }
       }
     }
     
@@ -72,6 +107,8 @@ impl GenericObject for Character {
     }
     
     self.physics_update(delta_time);
+    
+    dyn_objects
   }
   
   fn physics_update(&mut self, delta_time: f64) {
@@ -91,4 +128,32 @@ impl GenericObject for Character {
     self.y_rot_movement(delta_time);
     self.axis_movement(delta_time);
   }
+  
+  fn additional_draws(&self, draw_calls: &mut Vec<DrawCall>) {
+    let rotation = self.rotation().y;
+    
+    let x = self.position().x + 5.0*math::to_radians(rotation).sin();
+    let y = self.position().y;
+    let z = self.position().z + 5.0*math::to_radians(rotation).cos();
+    
+    let size_x = 1.0;
+    let size_y = 1.0;
+    let size_z = 1.0;
+    
+    let model = "sight".to_string();
+    
+    draw_calls.push(DrawCall::draw_model(Vector3::new(x,y,z).to_cgmath(),
+                                         Vector3::new(size_x, size_y, size_z).to_cgmath(),
+                                         Vector3::new(0.0, rotation, 0.0).to_cgmath(),
+                                         model));
+  }
 }
+
+
+
+
+
+
+
+
+
