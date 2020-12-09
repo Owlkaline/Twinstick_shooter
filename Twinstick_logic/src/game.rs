@@ -101,19 +101,21 @@ impl TwinstickGame {
   pub fn spawn_enemies(&mut self, delta_time: f64) -> Vec<Box<dyn GenericObject>> {
     let mut new_enemies = Vec::new();
     
-    self.enemy_tick += delta_time as f32;
-    if self.enemy_tick > ENEMY_RESPAWN_TIMER {
-      self.enemy_tick -= ENEMY_RESPAWN_TIMER;
-      for i in 0..self.players.len() {
-        let indexs = self.world.calculate_grid_area_indexs(self.players[i].position().x,
-                                                           self.players[i].position().y,
-                                                           4);
-        println!("Indexs: {:?}", indexs);
-        for (x, z) in indexs {
-          if let Some(section) = self.world.section_at_xz(x, z) {
-            if section.has_floor() {
-              let (pos_x, pos_z) = self.world.xz_from_grid_index(x, z);
-              new_enemies.push(Box::new(self.add_enemy(pos_x, pos_z)) as Box<dyn GenericObject>);
+    if self.enemies.len() <= 2 {
+      self.enemy_tick += delta_time as f32;
+      if self.enemy_tick > ENEMY_RESPAWN_TIMER {
+        self.enemy_tick -= ENEMY_RESPAWN_TIMER;
+        for i in 0..self.players.len() {
+          let indexs = self.world.calculate_grid_area_indexs(self.players[i].position().x,
+                                                             self.players[i].position().y,
+                                                             4);
+          println!("Indexs: {:?}", indexs);
+          for (x, z) in indexs {
+            if let Some(section) = self.world.section_at_xz(x, z) {
+              if section.has_floor() {
+                let (pos_x, pos_z) = self.world.xz_from_grid_index(x, z);
+                new_enemies.push(Box::new(self.add_enemy(pos_x, pos_z)) as Box<dyn GenericObject>);
+              }
             }
           }
         }
@@ -152,9 +154,9 @@ impl TwinstickGame {
       }
     }
     
-    let enemies: Vec<Box<dyn GenericObject>> = Vec::new(); //self.spawn_enemies(delta_time);
-    
-    (new_objects, Vec::new())
+    let enemies: Vec<Box<dyn GenericObject>> = self.spawn_enemies(delta_time);
+//    println!("enemies: {}", self.enemies.len());
+    (new_objects, enemies)
   }
   
   pub fn update(players: &mut Vec<Box<dyn GenericObject>>,
