@@ -45,7 +45,7 @@ impl GenericObject for StaticObject {
     
   }
   
-  fn collided_with_dynamic_object(&self, dynamic_object: &mut Box<dyn GenericObject>) {
+  fn collided_with_dynamic_object(&mut self, dynamic_object: &mut Box<dyn GenericObject>) {
     let static_collision_info = &self.collision_data();
     let player_collision_info = &dynamic_object.collision_data();
     

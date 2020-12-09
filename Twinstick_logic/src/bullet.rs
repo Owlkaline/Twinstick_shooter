@@ -1,4 +1,4 @@
-use crate::{Vector3, ObjectData, GenericObject};
+use crate::{Vector2, Vector3, ObjectData, GenericObject};
 use crate::{math, DrawCall};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
@@ -9,7 +9,7 @@ pub struct Bullet {
 }
 
 impl Bullet {
-  pub fn new(pos: Vector3, size: Vector3, rotation: f64, model: String) -> Bullet {
+  pub fn new(pos: Vector3, size: Vector3, rotation: f64, additional_speed: f64, model: String) -> Bullet {
     let mut data = ObjectData::new(pos, size, model);
     data.rotation.y = rotation;
     
@@ -19,7 +19,7 @@ impl Bullet {
     Bullet {
       data,
       duration: 3.0,
-      speed: 28.0,
+      speed: 28.0 + additional_speed,
     }
   }
 }
@@ -37,8 +37,9 @@ impl GenericObject for Bullet {
     self.mut_data().life = 0;
   }
   
-  fn collided_with_dynamic_object(&self, _dynamic_object: &mut Box<dyn GenericObject>) {
-    
+  fn collided_with_dynamic_object(&mut self, dynamic_object: &mut Box<dyn GenericObject>) {
+    dynamic_object.take_damage(self.damage());
+    self.mut_data().life = 0;
   }
   
   fn update(&mut self, _is_player: bool, delta_time: f64) -> Vec<Box<dyn GenericObject>> {

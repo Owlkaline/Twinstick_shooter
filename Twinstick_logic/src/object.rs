@@ -133,6 +133,7 @@ pub struct ObjectData {
   
   pub hitbox_size: Vector3,
   
+  damage: i32,
   pub life: i32,
   pub is_firing: bool,
 }
@@ -156,6 +157,8 @@ impl ObjectData {
       collision_data: CollisionType::AABB,//(pos, size.clone(), Vector4::new(0.0, 0.0, 0.0, 1.0))),
       
       hitbox_size: size,//: Vector3::new_same(1.0),
+      
+      damage: 1,
       life: 1,
       is_firing: false,
     }
@@ -173,6 +176,12 @@ impl ObjectData {
   
   pub fn hitbox_size(mut self, size: Vector3) -> ObjectData {
     self.hitbox_size = size;
+    
+    self
+  }
+  
+  pub fn set_life(mut self, life: i32) -> ObjectData {
+    self.life = life;
     
     self
   }
@@ -201,7 +210,7 @@ pub trait GenericObject: GenericObjectClone {
   fn update(&mut self, is_player: bool, delta_time: f64) -> Vec<Box<dyn GenericObject>>;
   fn physics_update(&mut self, delta_time: f64);
   
-  fn collided_with_dynamic_object(&self, dynamic_object: &mut Box<dyn GenericObject>);
+  fn collided_with_dynamic_object(&mut self, dynamic_object: &mut Box<dyn GenericObject>);
   fn collided_with_static_object(&mut self, static_object: &mut Box<dyn GenericObject>);
   
   fn additional_draws(&self, draw_calls: &mut Vec<DrawCall>);
@@ -250,6 +259,10 @@ pub trait GenericObject: GenericObjectClone {
     }
   }
   
+  fn damage(&self) -> i32 {
+    self.data().damage
+  }
+  
   fn model(&self) -> &str {
     &self.data().model
   }
@@ -287,12 +300,13 @@ pub trait GenericObject: GenericObjectClone {
       },
     }
   }
-  /*
-  fn to_character(&self) -> Character {
-    Character {
-      data: self.data().clone(),
+  
+  fn take_damage(&mut self, dmg: i32) {
+    self.mut_data().life -= dmg;
+    if self.data().life <= 0 {
+      self.mut_data().life = 0;
     }
-  }*/
+  }
   
   fn set_firing(&mut self, f: bool) {
     self.mut_data().is_firing = f;
@@ -353,11 +367,14 @@ pub trait GenericObject: GenericObjectClone {
     self.mut_data().size = scale;
   }
   
-  fn draw(&self, draw_calls: &mut Vec<DrawCall>) {
+  fn draw(&self, additional_draws: bool, draw_calls: &mut Vec<DrawCall>) {
     draw_calls.push(DrawCall::draw_model(self.position().clone().to_cgmath(),
                                          self.data().size.clone().to_cgmath(),
                                          cgmath::Vector3::new(self.data().rotation.x as f32, self.data().rotation.y as f32, self.data().rotation.z as f32),
                                          self.data().model.to_string()));
-    self.additional_draws(draw_calls);
+    
+    if additional_draws {
+      self.additional_draws(draw_calls);
+    }
   }
 }

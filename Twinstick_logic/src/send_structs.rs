@@ -80,4 +80,16 @@ impl SendDynamicObject {
   pub fn rotation(&self) -> f64 {
     self.rotation
   }
+  
+  pub fn size(&self) -> Vector3 {
+    Vector3::new(self.size_x, self.size_y, self.size_z)
+  }
+  
+  pub fn hitbox(&self) -> Vector3 {
+    Vector3::new(self.hitbox_x, self.hitbox_y, self.hitbox_z)
+  }
+  
+  pub fn model(&self) -> String {
+    self.model.to_string()
+  }
 }

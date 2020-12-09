@@ -81,6 +81,7 @@ impl Scene for LoadScreen {
       draw_calls.push(DrawCall::load_model("main_char".to_string()));
       draw_calls.push(DrawCall::load_model("bullet".to_string()));
       draw_calls.push(DrawCall::load_model("sight".to_string()));
+      draw_calls.push(DrawCall::load_model("enemy".to_string()));
     }
     
     draw_calls.push(

@@ -2,7 +2,7 @@ use crate::SPEED;
 use crate::Input;
 use crate::{math, DrawCall};
 
-use crate::{Vector3, GenericObject, ObjectData, Bullet};
+use crate::{Vector2, Vector3, GenericObject, ObjectData, Bullet};
 
 const WEAPON_COOLDOWN: f64 = 0.06;
 
@@ -37,7 +37,13 @@ impl Character {
       let perp_x = self.size().x*0.5*math::to_radians(rotation).sin();
       let perp_z = self.size().z*0.5*math::to_radians(rotation).cos();
       
-      bullets.push(Box::new(Bullet::new(Vector3::new(x+perp_x,y,z+perp_z), Vector3::new_same(1.0), rotation, "bullet".to_string())) as Box<dyn GenericObject>);
+      
+      
+      bullets.push(Box::new(Bullet::new(Vector3::new(x+perp_x,y,z+perp_z), 
+                                        Vector3::new_same(1.0), 
+                                        rotation,
+                                        16.0,
+                                        "bullet".to_string())) as Box<dyn GenericObject>);
       
     }
     
@@ -58,7 +64,7 @@ impl GenericObject for Character {
     
   }
   
-  fn collided_with_dynamic_object(&self, _dynamic_object: &mut Box<dyn GenericObject>) {
+  fn collided_with_dynamic_object(&mut self, _dynamic_object: &mut Box<dyn GenericObject>) {
     
   }
   

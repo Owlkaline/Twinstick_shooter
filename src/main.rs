@@ -103,6 +103,8 @@ fn main() {
                       "./resources/models/bullet.glb".to_string());
   graphics.add_model("sight".to_string(),
                       "./resources/models/sight.glb".to_string());
+  graphics.add_model("enemy".to_string(),
+                      "./resources/models/enemy.glb".to_string());
   
   graphics.load_shaders();
   graphics.create_model_instance_buffer("house_two".to_string());
